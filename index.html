@@ -140,7 +140,27 @@
     animation: fadeUp 1s 0.6s ease both;
   }
 
-  .scroll-hint {
+  .hero-photo-wrap {
+    margin-top: 36px;
+    position: relative;
+    z-index: 1;
+    animation: fadeUp 1s 0.8s ease both;
+  }
+
+  .hero-photo {
+    width: 220px;
+    height: 220px;
+    object-fit: cover;
+    object-position: center top;
+    border-radius: 50%;
+    border: 5px solid white;
+    box-shadow: 0 8px 32px rgba(122, 140, 110, 0.25);
+    filter: brightness(1.02) saturate(0.95);
+  }
+
+  @media (max-width: 500px) {
+    .hero-photo { width: 180px; height: 180px; }
+  }
     position: absolute;
     bottom: 30px;
     left: 50%;
@@ -622,6 +642,10 @@
 
   <div class="date-badge">12. September 2026</div>
 
+  <div class="hero-photo-wrap">
+    <img src="foto.jpg" alt="Selina & Nico" class="hero-photo">
+  </div>
+
   <div class="scroll-hint">
     <span>Mehr erfahren</span>
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
@@ -831,11 +855,14 @@
     }
   });
 
-  // Supabase config
+  // EmailJS + Supabase config
   const SUPABASE_URL = 'https://jglfuixuxqonltromtax.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpnbGZ1aXh1eHFvbmx0cm9tdGF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzNzU5MjAsImV4cCI6MjA5Mzk1MTkyMH0.QthneaLOwVSjqS_2tHr2_GRSWfNE9nkY-9zEWIh0VVU';
 
-  // RSVP Form submission via Supabase
+  // EmailJS initialisieren
+  (function(){ emailjs.init('ITk7SM0bQds5csvvO'); })();
+
+  // RSVP Form – Supabase (Datenbank) + EmailJS (E-Mail)
   async function handleSubmit(e) {
     e.preventDefault();
     const form = e.target;
@@ -846,15 +873,16 @@
     btn.disabled = true;
 
     const payload = {
-      vorname:      data.get('Vorname'),
-      nachname:     data.get('Nachname'),
-      email:        data.get('email') || null,
-      zusage:       data.get('Zusage'),
-      personen:     data.get('Personen'),
-      anmerkungen:  data.get('Anmerkungen') || null
+      vorname:     data.get('Vorname'),
+      nachname:    data.get('Nachname'),
+      email:       data.get('email') || null,
+      zusage:      data.get('Zusage'),
+      personen:    data.get('Personen'),
+      anmerkungen: data.get('Anmerkungen') || null
     };
 
     try {
+      // 1) In Supabase speichern
       const response = await fetch(`${SUPABASE_URL}/rest/v1/rsvp`, {
         method: 'POST',
         headers: {
@@ -866,14 +894,27 @@
         body: JSON.stringify(payload)
       });
 
-      if (response.ok || response.status === 201) {
-        form.style.display = 'none';
-        document.getElementById('successMsg').style.display = 'block';
-      } else {
+      if (!response.ok && response.status !== 201) {
         const err = await response.json();
-        console.error('Supabase Fehler:', err);
-        throw new Error(err.message || 'Unbekannter Fehler');
+        throw new Error(err.message || 'Supabase Fehler');
       }
+
+      // 2) E-Mail via EmailJS
+      // Stelle sicher dass dein EmailJS-Template diese Variablen enthält:
+      // {{vorname}}, {{nachname}}, {{email}}, {{zusage}}, {{personen}}, {{anmerkungen}}
+      await emailjs.send('service_w1mq4bz', 'template_hyexbm9', {
+        vorname:     payload.vorname,
+        nachname:    payload.nachname,
+        email:       payload.email || 'nicht angegeben',
+        zusage:      payload.zusage,
+        personen:    payload.personen,
+        anmerkungen: payload.anmerkungen || 'keine',
+        reply_to:    payload.email || 'selnic.senf@gmail.com'
+      });
+
+      form.style.display = 'none';
+      document.getElementById('successMsg').style.display = 'block';
+
     } catch (err) {
       console.error(err);
       btn.textContent = 'Rückmeldung absenden';
@@ -882,6 +923,7 @@
     }
   }
 </script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
 </body>
 </html>

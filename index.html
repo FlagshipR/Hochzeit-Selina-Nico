@@ -902,12 +902,11 @@
       }
 
       // 2) E-Mail via EmailJS
-      // Stelle sicher dass dein EmailJS-Template diese Variablen enthält:
-      // {{vorname}}, {{nachname}}, {{email}}, {{zusage}}, {{personen}}, {{anmerkungen}}
       await emailjs.send('service_w1mq4bz', 'template_hyexbm9', {
         vorname:     payload.vorname,
         nachname:    payload.nachname,
         email:       payload.email || 'nicht angegeben',
+        guest_email: payload.email || '',
         zusage:      payload.zusage,
         personen:    payload.personen,
         anmerkungen: payload.anmerkungen || 'keine',

@@ -810,53 +810,28 @@
     </a>
   </div>
 
-  <!-- QR Code für WhatsApp -->
-  <div class="qr-area" style="margin-top:36px;">
-    <div class="qr-label">QR-Code · direkt zu WhatsApp</div>
-    <canvas id="qr-canvas"></canvas>
-    <p>Einfach scannen und direkt eine Nachricht schicken.</p>
-  </div>
+
 </section>
 
 
 <!-- ═══════════════════════ FOOTER ═══════════════════════ -->
 <footer>
-  <p>"Nicht weil es einfach ist, sondern weil wir es zusammen tun."</p>
-  <small>Selina & Nico · 12. September 2026 · Markt Indersdorf</small>
+  <div style="display: flex; align-items: center; justify-content: center; gap: 24px; flex-wrap: wrap;">
+    <img src="foto2.jpg" alt="Selina & Nico"
+      style="width: 80px; height: 80px; object-fit: cover; object-position: center top; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 16px rgba(122,140,110,0.2);">
+    <div>
+      <p>"Nicht weil es einfach ist, sondern weil wir es zusammen tun."</p>
+      <small>Selina & Nico · 12. September 2026</small>
+    </div>
+  </div>
 </footer>
 
 
 <!-- ═══════════════════════ SCRIPTS ═══════════════════════ -->
-<!-- QR Code Library -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<!-- EmailJS – muss vor dem Haupt-Script geladen werden -->
+<!-- EmailJS -->
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
 <script>
-  // Generate WhatsApp QR code
-  window.addEventListener('load', function() {
-    const whatsappUrl = 'https://wa.me/4915737085181';
-    const canvas = document.getElementById('qr-canvas');
-
-    // Use QRCode library if available, fallback to API
-    try {
-      new QRCode(canvas, {
-        text: whatsappUrl,
-        width: 160,
-        height: 160,
-        colorDark: '#3a3228',
-        colorLight: '#faf7f0',
-        correctLevel: QRCode.CorrectLevel.M
-      });
-    } catch(e) {
-      // fallback: show as image from API
-      const img = document.createElement('img');
-      img.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(whatsappUrl)}&color=3a3228&bgcolor=faf7f0`;
-      img.alt = 'WhatsApp QR-Code';
-      canvas.replaceWith(img);
-    }
-  });
-
   // EmailJS + Supabase config
   const SUPABASE_URL = 'https://jglfuixuxqonltromtax.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpnbGZ1aXh1eHFvbmx0cm9tdGF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzNzU5MjAsImV4cCI6MjA5Mzk1MTkyMH0.QthneaLOwVSjqS_2tHr2_GRSWfNE9nkY-9zEWIh0VVU';

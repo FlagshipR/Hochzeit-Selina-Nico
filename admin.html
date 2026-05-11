@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin – RSVP Übersicht · Selina & Nico</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Jost:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --sage: #7a8c6e;
+    --sage-light: #a8b89a;
+    --sage-pale: #d6e0cc;
+    --beige: #f2ead8;
+    --beige-dark: #e0d4b8;
+    --cream: #faf7f0;
+    --brown-light: #9c7e63;
+    --text: #3a3228;
+    --text-light: #6b5f52;
+    --green: #4a7c59;
+    --red: #a05252;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--cream);
+    font-family: 'Jost', sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* === LOGIN === */
+  #login-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+  }
+
+  .login-box {
+    background: var(--beige);
+    padding: 48px 40px;
+    max-width: 380px;
+    width: 100%;
+    text-align: center;
+  }
+
+  .login-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: 2rem;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .login-title em { font-style: italic; color: var(--sage); }
+
+  .login-sub {
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--brown-light);
+    margin-bottom: 32px;
+  }
+
+  .login-box input[type="password"] {
+    width: 100%;
+    background: var(--cream);
+    border: 1px solid var(--beige-dark);
+    padding: 13px 16px;
+    font-family: 'Jost', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 300;
+    color: var(--text);
+    outline: none;
+    text-align: center;
+    letter-spacing: 0.1em;
+    transition: border-color 0.2s;
+    margin-bottom: 12px;
+  }
+
+  .login-box input[type="password"]:focus { border-color: var(--sage); }
+
+  .login-btn {
+    width: 100%;
+    background: var(--sage);
+    color: white;
+    border: none;
+    padding: 14px;
+    font-family: 'Jost', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 400;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .login-btn:hover { background: var(--sage-light); }
+
+  .login-error {
+    margin-top: 12px;
+    font-size: 0.8rem;
+    color: var(--red);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .login-error.show { opacity: 1; }
+
+  /* === ADMIN CONTENT === */
+  #admin-content { display: none; }
+
+  /* === HEADER === */
+  header {
+    background: var(--beige);
+    border-bottom: 1px solid var(--beige-dark);
+    padding: 28px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .header-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: 1.8rem;
+    color: var(--text);
+  }
+
+  .header-title em { font-style: italic; color: var(--sage); }
+
+  .header-sub {
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--brown-light);
+    margin-top: 4px;
+  }
+
+  .header-btns { display: flex; gap: 10px; }
+
+  .btn-refresh {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--sage);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-family: 'Jost', sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .btn-refresh:hover { background: var(--sage-light); }
+
+  .btn-logout {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    color: var(--text-light);
+    border: 1px solid var(--beige-dark);
+    padding: 10px 20px;
+    font-family: 'Jost', sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-logout:hover { border-color: var(--sage); color: var(--sage); }
+
+  /* === STATS === */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
+    padding: 28px 32px;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  .stat-card {
+    background: var(--beige);
+    padding: 20px 24px;
+    text-align: center;
+    border-top: 3px solid var(--sage-pale);
+  }
+
+  .stat-card.zusagen { border-top-color: var(--green); }
+  .stat-card.absagen { border-top-color: var(--red); }
+  .stat-card.gesamt  { border-top-color: var(--sage); }
+  .stat-card.personen { border-top-color: var(--brown-light); }
+
+  .stat-number {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 3rem;
+    font-weight: 300;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .stat-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-light);
+    margin-top: 6px;
+  }
+
+  /* === TABLE === */
+  .table-wrap {
+    max-width: 1000px;
+    margin: 0 auto 60px;
+    padding: 0 32px;
+  }
+
+  .table-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .table-header h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: 1.5rem;
+    color: var(--text);
+  }
+
+  .filter-group { display: flex; gap: 8px; }
+
+  .filter-btn {
+    padding: 6px 14px;
+    font-family: 'Jost', sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border: 1px solid var(--beige-dark);
+    background: var(--cream);
+    color: var(--text-light);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .filter-btn.active, .filter-btn:hover {
+    background: var(--sage);
+    color: white;
+    border-color: var(--sage);
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+
+  thead tr { background: var(--beige-dark); }
+
+  th {
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 0.68rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-light);
+    font-weight: 400;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+
+  th:hover { color: var(--sage); }
+
+  tbody tr {
+    border-bottom: 1px solid var(--beige-dark);
+    transition: background 0.15s;
+  }
+
+  tbody tr:hover { background: var(--beige); }
+
+  td { padding: 14px 16px; color: var(--text); vertical-align: middle; }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+  }
+
+  .badge-ja   { background: #e8f4ec; color: var(--green); }
+  .badge-nein { background: #f4e8e8; color: var(--red); }
+
+  .date-cell { font-size: 0.8rem; color: var(--text-light); white-space: nowrap; }
+
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text-light); }
+  .empty-state svg { color: var(--sage-light); margin-bottom: 16px; }
+
+  .loading {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-light);
+    font-size: 0.9rem;
+    letter-spacing: 0.1em;
+  }
+
+  .loading::after {
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--sage-pale);
+    border-top-color: var(--sage);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-left: 10px;
+    vertical-align: middle;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .last-updated {
+    font-size: 0.72rem;
+    color: var(--text-light);
+    text-align: right;
+    padding: 0 32px 20px;
+    max-width: 1000px;
+    margin: 0 auto;
+    opacity: 0.7;
+  }
+
+  @media (max-width: 600px) {
+    header, .stats, .table-wrap { padding-left: 16px; padding-right: 16px; }
+    .table-wrap { overflow-x: auto; }
+    td, th { padding: 10px 10px; }
+    .login-box { padding: 36px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════ LOGIN ═══════════════════════ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-title"><em>Selina & Nico</em></div>
+    <div class="login-sub">Admin · Passwort erforderlich</div>
+    <input type="password" id="pw-input" placeholder="Passwort eingeben"
+      onkeydown="if(event.key==='Enter') checkPassword()">
+    <button class="login-btn" onclick="checkPassword()">Anmelden</button>
+    <div class="login-error" id="login-error">Falsches Passwort. Bitte erneut versuchen.</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ ADMIN INHALT ═══════════════════════ -->
+<div id="admin-content">
+
+  <header>
+    <div>
+      <div class="header-title"><em>Selina & Nico</em> · RSVP Übersicht</div>
+      <div class="header-sub">Admin · 12. September 2026</div>
+    </div>
+    <div class="header-btns">
+      <button class="btn-refresh" onclick="loadRSVP()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Aktualisieren
+      </button>
+      <button class="btn-logout" onclick="logout()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Abmelden
+      </button>
+    </div>
+  </header>
+
+  <div class="stats">
+    <div class="stat-card gesamt">
+      <div class="stat-number" id="stat-gesamt">–</div>
+      <div class="stat-label">Antworten gesamt</div>
+    </div>
+    <div class="stat-card zusagen">
+      <div class="stat-number" id="stat-zusagen">–</div>
+      <div class="stat-label">Zusagen</div>
+    </div>
+    <div class="stat-card absagen">
+      <div class="stat-number" id="stat-absagen">–</div>
+      <div class="stat-label">Absagen</div>
+    </div>
+    <div class="stat-card personen">
+      <div class="stat-number" id="stat-personen">–</div>
+      <div class="stat-label">Personen erwartet</div>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-header">
+      <h2>Alle Rückmeldungen</h2>
+      <div class="filter-group">
+        <button class="filter-btn active" onclick="setFilter('alle', this)">Alle</button>
+        <button class="filter-btn" onclick="setFilter('ja', this)">Zusagen</button>
+        <button class="filter-btn" onclick="setFilter('nein', this)">Absagen</button>
+      </div>
+    </div>
+    <div id="table-container">
+      <div class="loading">Lade Daten</div>
+    </div>
+  </div>
+
+  <div class="last-updated" id="last-updated"></div>
+
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://jglfuixuxqonltromtax.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpnbGZ1aXh1eHFvbmx0cm9tdGF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzNzU5MjAsImV4cCI6MjA5Mzk1MTkyMH0.QthneaLOwVSjqS_2tHr2_GRSWfNE9nkY-9zEWIh0VVU';
+  const PASSWORD = 'SelinaHatJaGesagt';
+
+  let allData = [];
+  let currentFilter = 'alle';
+  let sortCol = 'created_at';
+  let sortAsc = false;
+  let autoRefresh;
+
+  function checkPassword() {
+    const input = document.getElementById('pw-input').value;
+    if (input === PASSWORD) {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('admin-content').style.display = 'block';
+      loadRSVP();
+      autoRefresh = setInterval(loadRSVP, 60000);
+    } else {
+      const err = document.getElementById('login-error');
+      err.classList.add('show');
+      document.getElementById('pw-input').value = '';
+      setTimeout(() => err.classList.remove('show'), 3000);
+    }
+  }
+
+  function logout() {
+    clearInterval(autoRefresh);
+    document.getElementById('admin-content').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('pw-input').value = '';
+  }
+
+  async function loadRSVP() {
+    document.getElementById('table-container').innerHTML = '<div class="loading">Lade Daten</div>';
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rsvp?select=*&order=created_at.desc`, {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+        }
+      });
+      if (!res.ok) throw new Error('Fehler beim Laden');
+      allData = await res.json();
+      updateStats();
+      renderTable();
+      const now = new Date();
+      document.getElementById('last-updated').textContent =
+        `Zuletzt aktualisiert: ${now.toLocaleDateString('de-DE')} um ${now.toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit'})} Uhr`;
+    } catch (err) {
+      document.getElementById('table-container').innerHTML =
+        `<div class="empty-state"><p>Fehler beim Laden der Daten.<br><small>${err.message}</small></p></div>`;
+    }
+  }
+
+  function updateStats() {
+    const zusagen = allData.filter(r => r.zusage && r.zusage.includes('Ja'));
+    const absagen = allData.filter(r => r.zusage && r.zusage.includes('nicht'));
+    let personen = 0;
+    zusagen.forEach(r => {
+      const p = parseInt(r.personen);
+      if (!isNaN(p)) personen += p;
+      else if (r.personen && r.personen.includes('4')) personen += 4;
+      else personen += 1;
+    });
+    document.getElementById('stat-gesamt').textContent = allData.length;
+    document.getElementById('stat-zusagen').textContent = zusagen.length;
+    document.getElementById('stat-absagen').textContent = absagen.length;
+    document.getElementById('stat-personen').textContent = personen;
+  }
+
+  function setFilter(filter, btn) {
+    currentFilter = filter;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderTable();
+  }
+
+  function renderTable() {
+    let data = [...allData];
+    if (currentFilter === 'ja')   data = data.filter(r => r.zusage && r.zusage.includes('Ja'));
+    if (currentFilter === 'nein') data = data.filter(r => r.zusage && r.zusage.includes('nicht'));
+    data.sort((a, b) => {
+      let va = a[sortCol] || '', vb = b[sortCol] || '';
+      return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+    });
+
+    if (data.length === 0) {
+      document.getElementById('table-container').innerHTML = `
+        <div class="empty-state">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          <p>Noch keine Rückmeldungen.</p>
+        </div>`;
+      return;
+    }
+
+    const rows = data.map(r => {
+      const date = new Date(r.created_at);
+      const dateStr = date.toLocaleDateString('de-DE') + '<br><span style="opacity:0.6">' + date.toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit'}) + ' Uhr</span>';
+      const isJa = r.zusage && r.zusage.includes('Ja');
+      const badge = isJa
+        ? `<span class="badge badge-ja">✅ Zusage</span>`
+        : `<span class="badge badge-nein">❌ Absage</span>`;
+      return `<tr>
+        <td><strong>${r.vorname || '–'} ${r.nachname || ''}</strong></td>
+        <td>${badge}</td>
+        <td>${r.personen || '–'}</td>
+        <td>${r.email ? `<a href="mailto:${r.email}" style="color:var(--sage);text-decoration:none;">${r.email}</a>` : '<span style="opacity:0.4">–</span>'}</td>
+        <td>${r.anmerkungen || '<span style="opacity:0.4">–</span>'}</td>
+        <td class="date-cell">${dateStr}</td>
+      </tr>`;
+    }).join('');
+
+    document.getElementById('table-container').innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th onclick="sortBy('nachname')">Name ${sortCol==='nachname'?(sortAsc?'↑':'↓'):''}</th>
+            <th onclick="sortBy('zusage')">Antwort ${sortCol==='zusage'?(sortAsc?'↑':'↓'):''}</th>
+            <th>Personen</th>
+            <th>E-Mail</th>
+            <th>Anmerkungen</th>
+            <th onclick="sortBy('created_at')">Datum ${sortCol==='created_at'?(sortAsc?'↑':'↓'):''}</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  function sortBy(col) {
+    if (sortCol === col) sortAsc = !sortAsc;
+    else { sortCol = col; sortAsc = true; }
+    renderTable();
+  }
+</script>
+
+</body>
+</html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin – RSVP Übersicht · Selina & Nico</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Jost:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --sage: #7a8c6e;
+    --sage-light: #a8b89a;
+    --sage-pale: #d6e0cc;
+    --beige: #f2ead8;
+    --beige-dark: #e0d4b8;
+    --cream: #faf7f0;
+    --brown-light: #9c7e63;
+    --text: #3a3228;
+    --text-light: #6b5f52;
+    --green: #4a7c59;
+    --red: #a05252;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--cream);
+    font-family: 'Jost', sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* === HEADER === */
+  header {
+    background: var(--beige);
+    border-bottom: 1px solid var(--beige-dark);
+    padding: 28px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .header-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: 1.8rem;
+    color: var(--text);
+  }
+
+  .header-title em { font-style: italic; color: var(--sage); }
+
+  .header-sub {
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--brown-light);
+    margin-top: 4px;
+  }
+
+  .btn-refresh {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--sage);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-family: 'Jost', sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .btn-refresh:hover { background: var(--sage-light); }
+
+  /* === STATS === */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
+    padding: 28px 32px;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  .stat-card {
+    background: var(--beige);
+    padding: 20px 24px;
+    text-align: center;
+    border-top: 3px solid var(--sage-pale);
+  }
+
+  .stat-card.zusagen { border-top-color: var(--green); }
+  .stat-card.absagen { border-top-color: var(--red); }
+  .stat-card.gesamt { border-top-color: var(--sage); }
+  .stat-card.personen { border-top-color: var(--brown-light); }
+
+  .stat-number {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 3rem;
+    font-weight: 300;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .stat-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-light);
+    margin-top: 6px;
+  }
+
+  /* === TABLE === */
+  .table-wrap {
+    max-width: 1000px;
+    margin: 0 auto 60px;
+    padding: 0 32px;
+  }
+
+  .table-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .table-header h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: 1.5rem;
+    color: var(--text);
+  }
+
+  .filter-group {
+    display: flex;
+    gap: 8px;
+  }
+
+  .filter-btn {
+    padding: 6px 14px;
+    font-family: 'Jost', sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border: 1px solid var(--beige-dark);
+    background: var(--cream);
+    color: var(--text-light);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .filter-btn.active, .filter-btn:hover {
+    background: var(--sage);
+    color: white;
+    border-color: var(--sage);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+
+  thead tr {
+    background: var(--beige-dark);
+  }
+
+  th {
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 0.68rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-light);
+    font-weight: 400;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+
+  th:hover { color: var(--sage); }
+
+  tbody tr {
+    border-bottom: 1px solid var(--beige-dark);
+    transition: background 0.15s;
+  }
+
+  tbody tr:hover { background: var(--beige); }
+
+  td {
+    padding: 14px 16px;
+    color: var(--text);
+    vertical-align: middle;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 400;
+  }
+
+  .badge-ja {
+    background: #e8f4ec;
+    color: var(--green);
+  }
+
+  .badge-nein {
+    background: #f4e8e8;
+    color: var(--red);
+  }
+
+  .date-cell {
+    font-size: 0.8rem;
+    color: var(--text-light);
+    white-space: nowrap;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-light);
+  }
+
+  .empty-state svg { color: var(--sage-light); margin-bottom: 16px; }
+
+  .loading {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-light);
+    font-size: 0.9rem;
+    letter-spacing: 0.1em;
+  }
+
+  .loading::after {
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--sage-pale);
+    border-top-color: var(--sage);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-left: 10px;
+    vertical-align: middle;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .last-updated {
+    font-size: 0.72rem;
+    color: var(--text-light);
+    text-align: right;
+    padding: 0 32px 20px;
+    max-width: 1000px;
+    margin: 0 auto;
+    opacity: 0.7;
+  }
+
+  @media (max-width: 600px) {
+    header, .stats, .table-wrap { padding-left: 16px; padding-right: 16px; }
+    .table-wrap { overflow-x: auto; }
+    td, th { padding: 10px 10px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="header-title"><em>Selina & Nico</em> · RSVP Übersicht</div>
+    <div class="header-sub">Admin · 12. September 2026</div>
+  </div>
+  <button class="btn-refresh" onclick="loadRSVP()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+    Aktualisieren
+  </button>
+</header>
+
+<!-- Stats -->
+<div class="stats">
+  <div class="stat-card gesamt">
+    <div class="stat-number" id="stat-gesamt">–</div>
+    <div class="stat-label">Antworten gesamt</div>
+  </div>
+  <div class="stat-card zusagen">
+    <div class="stat-number" id="stat-zusagen">–</div>
+    <div class="stat-label">Zusagen</div>
+  </div>
+  <div class="stat-card absagen">
+    <div class="stat-number" id="stat-absagen">–</div>
+    <div class="stat-label">Absagen</div>
+  </div>
+  <div class="stat-card personen">
+    <div class="stat-number" id="stat-personen">–</div>
+    <div class="stat-label">Personen erwartet</div>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="table-wrap">
+  <div class="table-header">
+    <h2>Alle Rückmeldungen</h2>
+    <div class="filter-group">
+      <button class="filter-btn active" onclick="setFilter('alle', this)">Alle</button>
+      <button class="filter-btn" onclick="setFilter('ja', this)">Zusagen</button>
+      <button class="filter-btn" onclick="setFilter('nein', this)">Absagen</button>
+    </div>
+  </div>
+
+  <div id="table-container">
+    <div class="loading">Lade Daten</div>
+  </div>
+</div>
+
+<div class="last-updated" id="last-updated"></div>
+
+<script>
+  const SUPABASE_URL = 'https://jglfuixuxqonltromtax.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpnbGZ1aXh1eHFvbmx0cm9tdGF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzNzU5MjAsImV4cCI6MjA5Mzk1MTkyMH0.QthneaLOwVSjqS_2tHr2_GRSWfNE9nkY-9zEWIh0VVU';
+
+  let allData = [];
+  let currentFilter = 'alle';
+  let sortCol = 'created_at';
+  let sortAsc = false;
+
+  async function loadRSVP() {
+    document.getElementById('table-container').innerHTML = '<div class="loading">Lade Daten</div>';
+
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rsvp?select=*&order=created_at.desc`, {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+        }
+      });
+
+      if (!res.ok) throw new Error('Fehler beim Laden');
+      allData = await res.json();
+
+      updateStats();
+      renderTable();
+
+      const now = new Date();
+      document.getElementById('last-updated').textContent =
+        `Zuletzt aktualisiert: ${now.toLocaleDateString('de-DE')} um ${now.toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit'})} Uhr`;
+
+    } catch (err) {
+      document.getElementById('table-container').innerHTML =
+        `<div class="empty-state"><p>Fehler beim Laden der Daten.<br><small>${err.message}</small></p></div>`;
+    }
+  }
+
+  function updateStats() {
+    const zusagen = allData.filter(r => r.zusage && r.zusage.includes('Ja'));
+    const absagen = allData.filter(r => r.zusage && r.zusage.includes('nicht'));
+
+    // Personen zählen (nur Zusagen)
+    let personen = 0;
+    zusagen.forEach(r => {
+      const p = parseInt(r.personen);
+      if (!isNaN(p)) personen += p;
+      else if (r.personen && r.personen.includes('4')) personen += 4;
+      else personen += 1;
+    });
+
+    document.getElementById('stat-gesamt').textContent = allData.length;
+    document.getElementById('stat-zusagen').textContent = zusagen.length;
+    document.getElementById('stat-absagen').textContent = absagen.length;
+    document.getElementById('stat-personen').textContent = personen;
+  }
+
+  function setFilter(filter, btn) {
+    currentFilter = filter;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderTable();
+  }
+
+  function renderTable() {
+    let data = [...allData];
+
+    // Filter
+    if (currentFilter === 'ja') data = data.filter(r => r.zusage && r.zusage.includes('Ja'));
+    if (currentFilter === 'nein') data = data.filter(r => r.zusage && r.zusage.includes('nicht'));
+
+    // Sort
+    data.sort((a, b) => {
+      let va = a[sortCol] || '';
+      let vb = b[sortCol] || '';
+      return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+    });
+
+    if (data.length === 0) {
+      document.getElementById('table-container').innerHTML = `
+        <div class="empty-state">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <p>Noch keine Rückmeldungen.</p>
+        </div>`;
+      return;
+    }
+
+    const rows = data.map(r => {
+      const date = new Date(r.created_at);
+      const dateStr = date.toLocaleDateString('de-DE') + '<br><span style="opacity:0.6">' + date.toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit'}) + ' Uhr</span>';
+      const isJa = r.zusage && r.zusage.includes('Ja');
+      const badge = isJa
+        ? `<span class="badge badge-ja">✅ Zusage</span>`
+        : `<span class="badge badge-nein">❌ Absage</span>`;
+
+      return `<tr>
+        <td><strong>${r.vorname || '–'} ${r.nachname || ''}</strong></td>
+        <td>${badge}</td>
+        <td>${r.personen || '–'}</td>
+        <td>${r.email ? `<a href="mailto:${r.email}" style="color:var(--sage);text-decoration:none;">${r.email}</a>` : '<span style="opacity:0.4">–</span>'}</td>
+        <td>${r.anmerkungen || '<span style="opacity:0.4">–</span>'}</td>
+        <td class="date-cell">${dateStr}</td>
+      </tr>`;
+    }).join('');
+
+    document.getElementById('table-container').innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th onclick="sortBy('nachname')">Name ${sortCol==='nachname' ? (sortAsc?'↑':'↓') : ''}</th>
+            <th onclick="sortBy('zusage')">Antwort ${sortCol==='zusage' ? (sortAsc?'↑':'↓') : ''}</th>
+            <th onclick="sortBy('personen')">Personen</th>
+            <th>E-Mail</th>
+            <th>Anmerkungen</th>
+            <th onclick="sortBy('created_at')">Datum ${sortCol==='created_at' ? (sortAsc?'↑':'↓') : ''}</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  function sortBy(col) {
+    if (sortCol === col) sortAsc = !sortAsc;
+    else { sortCol = col; sortAsc = true; }
+    renderTable();
+  }
+
+  // Beim Laden automatisch Daten holen
+  loadRSVP();
+
+  // Alle 60 Sekunden automatisch aktualisieren
+  setInterval(loadRSVP, 60000);
+</script>
+
+</body>
+</html>

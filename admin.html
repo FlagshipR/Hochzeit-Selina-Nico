@@ -70,8 +70,17 @@
   th:hover { color: var(--sage); }
   tbody tr { border-bottom: 1px solid var(--beige-dark); transition: background 0.15s; }
   tbody tr:hover { background: var(--beige); }
-  tbody tr.is-duplicate { background: #fdf3e8; }
-  tbody tr.is-duplicate:hover { background: #f7e8d4; }
+  tbody tr.is-duplicate-latest { background: #fdf3e8; }
+  tbody tr.is-duplicate-latest:hover { background: #f7e8d4; }
+  tbody tr.is-duplicate-old { background: #f5f5f2; opacity: 0.55; }
+  tbody tr.is-duplicate-old:hover { background: #eeede8; opacity: 0.75; }
+  tbody tr.is-duplicate-old td { color: var(--text-light); }
+  tbody tr.is-duplicate-old.collapsed { display: none; }
+  .badge-dup-old { background: #e8e6e0; color: #8a8070; font-size: 0.7rem; margin-left: 6px; display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; }
+  tr.dup-group-separator td { border-top: 2px solid var(--beige-dark) !important; }
+  .toggle-btn { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--orange); background: transparent; color: var(--orange); cursor: pointer; margin-left: 8px; font-size: 0.7rem; vertical-align: middle; transition: background 0.15s, transform 0.2s; flex-shrink: 0; }
+  .toggle-btn:hover { background: #fdebd6; }
+  .toggle-btn.open { transform: rotate(180deg); }
   td { padding: 14px 16px; color: var(--text); vertical-align: middle; }
 
   .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 0.78rem; }
@@ -175,7 +184,7 @@
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpnbGZ1aXh1eHFvbmx0cm9tdGF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzNzU5MjAsImV4cCI6MjA5Mzk1MTkyMH0.QthneaLOwVSjqS_2tHr2_GRSWfNE9nkY-9zEWIh0VVU';
   const PASSWORD     = 'SelinaHatJaGesagt';
 
-  let allData = [], duplicateIds = new Set();
+  let allData = [], duplicateIds = new Set(), latestDupIds = new Set(), dupGroups = new Map();
   let currentFilter = 'alle', sortCol = 'created_at', sortAsc = false, autoRefresh;
 
   function checkPassword() {
@@ -221,22 +230,59 @@
 
   function findDuplicates() {
     duplicateIds = new Set();
+    latestDupIds = new Set();
+    dupGroups    = new Map(); // latestId → [oldIds...] in desc order
+
     const nameMap = {}, emailMap = {};
+    // allData ist nach created_at desc sortiert → Index 0 = neuester
     allData.forEach(r => {
       const nk = ((r.vorname||'')+'|'+(r.nachname||'')).toLowerCase().trim();
       const ek = (r.email||'').toLowerCase().trim();
       if (nk !== '|') { if (!nameMap[nk]) nameMap[nk]=[]; nameMap[nk].push(r.id); }
       if (ek)         { if (!emailMap[ek]) emailMap[ek]=[]; emailMap[ek].push(r.id); }
     });
-    Object.values(nameMap).forEach(ids  => { if (ids.length > 1) ids.forEach(id => duplicateIds.add(id)); });
-    Object.values(emailMap).forEach(ids => { if (ids.length > 1) ids.forEach(id => duplicateIds.add(id)); });
+
+    const mergeGroup = ids => {
+      if (ids.length < 2) return;
+      ids.forEach(id => duplicateIds.add(id));
+      const latestId = ids[0];
+      latestDupIds.add(latestId);
+      const oldIds = ids.slice(1);
+      // Merge with existing group if latestId already seen (name+email overlap)
+      if (dupGroups.has(latestId)) {
+        oldIds.forEach(id => { if (!dupGroups.get(latestId).includes(id)) dupGroups.get(latestId).push(id); });
+      } else {
+        dupGroups.set(latestId, oldIds);
+      }
+    };
+
+    Object.values(nameMap).forEach(mergeGroup);
+    Object.values(emailMap).forEach(mergeGroup);
   }
 
   function updateStats() {
     const zusagen = allData.filter(r => r.zusage && r.zusage.includes('Ja'));
     const absagen = allData.filter(r => r.zusage && r.zusage.includes('nicht'));
+
+    // Für Personenzählung: bei Duplikaten nur den neuesten Eintrag (Ja) pro Person werten.
+    // allData ist bereits nach created_at desc sortiert, d.h. der erste Treffer ist der neueste.
+    const seenName = new Set(), seenEmail = new Set();
     let personen = 0;
-    zusagen.forEach(r => { const p = parseInt(r.personen); personen += !isNaN(p) ? p : (r.personen&&r.personen.includes('4') ? 4 : 1); });
+    allData.forEach(r => {
+      if (!r.zusage || !r.zusage.includes('Ja')) return;
+      const nk = ((r.vorname||'')+'|'+(r.nachname||'')).toLowerCase().trim();
+      const ek = (r.email||'').toLowerCase().trim();
+      const isDup = duplicateIds.has(r.id);
+      if (isDup) {
+        // Überspringe, wenn wir diesen Namen oder diese E-Mail schon gezählt haben
+        if ((nk !== '|' && seenName.has(nk)) || (ek && seenEmail.has(ek))) return;
+      }
+      if (nk !== '|') seenName.add(nk);
+      if (ek)         seenEmail.add(ek);
+      const p = parseInt(r.personen);
+      personen += !isNaN(p) ? p : (r.personen && r.personen.includes('4') ? 4 : 1);
+    });
+
     document.getElementById('stat-gesamt').textContent    = allData.length;
     document.getElementById('stat-zusagen').textContent   = zusagen.length;
     document.getElementById('stat-absagen').textContent   = absagen.length;
@@ -267,14 +313,19 @@
       return;
     }
 
-    const rows = data.map(r => {
+    function makeRow(r, extraClass) {
       const date    = new Date(r.created_at);
       const dateStr = date.toLocaleDateString('de-DE')+'<br><span style="opacity:0.6">'+date.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr</span>';
       const isJa    = r.zusage && r.zusage.includes('Ja');
       const isDup   = duplicateIds.has(r.id);
+      const isLatest = latestDupIds.has(r.id);
+      const isOld   = isDup && !isLatest;
       const badge   = isJa ? `<span class="badge badge-ja">✅ Zusage</span>` : `<span class="badge badge-nein">❌ Absage</span>`;
-      const dupBadge = isDup ? `<span class="badge badge-dup">⚠️ Duplikat</span>` : '';
-      return `<tr class="${isDup?'is-duplicate':''}">
+      const dupBadge = isLatest ? `<span class="badge badge-dup">⚠️ Duplikat</span>`
+                     : isOld    ? `<span class="badge-dup-old">⚠️ Veraltet</span>`
+                     : '';
+      const rowClass = (isLatest ? 'is-duplicate-latest' : isOld ? 'is-duplicate-old' : '') + (extraClass ? ' '+extraClass : '');
+      return `<tr class="${rowClass}">
         <td><strong>${r.vorname||'–'} ${r.nachname||''}</strong>${dupBadge}</td>
         <td>${badge}</td>
         <td>${r.personen||'–'}</td>
@@ -282,7 +333,58 @@
         <td>${r.anmerkungen||'<span style="opacity:0.4">–</span>'}</td>
         <td class="date-cell">${dateStr}</td>
       </tr>`;
-    }).join('');
+    }
+
+    let rows;
+
+    if (currentFilter === 'duplikate') {
+      // Gruppierte Ansicht: neueste Meldung → darunter die veralteten (eingeklappt)
+      const idMap = Object.fromEntries(allData.map(r => [r.id, r]));
+      const latestEntries = data.filter(r => latestDupIds.has(r.id));
+      rows = latestEntries.map((latest, idx) => {
+        const oldIds = dupGroups.get(latest.id) || [];
+        const oldEntries = oldIds.map(id => idMap[id]).filter(Boolean);
+        oldEntries.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+        const groupId = `dup-group-${latest.id}`;
+        const separator = idx > 0 ? 'dup-group-separator' : '';
+        const count = oldEntries.length;
+
+        // Neueste Zeile mit Toggle-Button
+        const date    = new Date(latest.created_at);
+        const dateStr = date.toLocaleDateString('de-DE')+'<br><span style="opacity:0.6">'+date.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr</span>';
+        const isJa    = latest.zusage && latest.zusage.includes('Ja');
+        const badge   = isJa ? `<span class="badge badge-ja">✅ Zusage</span>` : `<span class="badge badge-nein">❌ Absage</span>`;
+        const toggleBtn = `<button class="toggle-btn" onclick="toggleGroup('${groupId}', this)" title="${count} ältere Einträge">▼</button>`;
+        const latestRow = `<tr class="is-duplicate-latest${separator?' '+separator:''}">
+          <td><strong>${latest.vorname||'–'} ${latest.nachname||''}</strong><span class="badge badge-dup">⚠️ Duplikat</span>${toggleBtn}</td>
+          <td>${badge}</td>
+          <td>${latest.personen||'–'}</td>
+          <td>${latest.email?`<a href="mailto:${latest.email}" style="color:var(--sage);text-decoration:none;">${latest.email}</a>`:'<span style="opacity:0.4">–</span>'}</td>
+          <td>${latest.anmerkungen||'<span style="opacity:0.4">–</span>'}</td>
+          <td class="date-cell">${dateStr}</td>
+        </tr>`;
+
+        // Alte Zeilen — eingeklappt per default
+        const oldRows = oldEntries.map(r => {
+          const d    = new Date(r.created_at);
+          const ds   = d.toLocaleDateString('de-DE')+'<br><span style="opacity:0.6">'+d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr</span>';
+          const ja   = r.zusage && r.zusage.includes('Ja');
+          const bdg  = ja ? `<span class="badge badge-ja">✅ Zusage</span>` : `<span class="badge badge-nein">❌ Absage</span>`;
+          return `<tr class="is-duplicate-old collapsed" data-group="${groupId}">
+            <td style="padding-left:36px"><strong>${r.vorname||'–'} ${r.nachname||''}</strong><span class="badge-dup-old">⚠️ Veraltet</span></td>
+            <td>${bdg}</td>
+            <td>${r.personen||'–'}</td>
+            <td>${r.email?`<a href="mailto:${r.email}" style="color:var(--sage);text-decoration:none;">${r.email}</a>`:'<span style="opacity:0.4">–</span>'}</td>
+            <td>${r.anmerkungen||'<span style="opacity:0.4">–</span>'}</td>
+            <td class="date-cell">${ds}</td>
+          </tr>`;
+        }).join('');
+
+        return latestRow + oldRows;
+      }).join('');
+    } else {
+      rows = data.map(r => makeRow(r, '')).join('');
+    }
 
     document.getElementById('table-container').innerHTML = `
       <table>
@@ -294,6 +396,13 @@
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
+  }
+
+  function toggleGroup(groupId, btn) {
+    const rows = document.querySelectorAll(`tr[data-group="${groupId}"]`);
+    const isOpen = btn.classList.contains('open');
+    rows.forEach(r => r.classList.toggle('collapsed', isOpen));
+    btn.classList.toggle('open', !isOpen);
   }
 
   function sortBy(col) {

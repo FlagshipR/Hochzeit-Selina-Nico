@@ -573,7 +573,7 @@
   .accordion-arrow { flex-shrink: 0; color: var(--sage); transition: transform 0.3s ease; }
   .accordion-btn[aria-expanded="true"] .accordion-arrow { transform: rotate(180deg); }
   .accordion-panel { overflow: hidden; max-height: 0; transition: max-height 0.4s ease; }
-  .accordion-panel.open { max-height: 700px; }
+  .accordion-panel.open { max-height: 1000px; }
   .accordion-inner {
     margin-top: 16px; padding: 20px 24px;
     background: var(--sage-pale); border-left: 3px solid var(--sage);
@@ -691,60 +691,103 @@
 
   <div class="timeline" style="margin-top:36px;">
 
+    <!-- 12:00 Standesamt -->
     <div class="timeline-item">
       <div class="t-time">12:00</div>
       <div class="t-dot"></div>
       <div class="t-content">
-        <div class="t-title">Standesamtliche Trauung</div>
-        <p class="t-desc">Standesamt Markt Indersdorf<br>Marktplatz 1 · 85229 Markt Indersdorf</p>
-        <a class="map-link" href="https://maps.google.com/?q=Marktplatz+1,+85229+Markt+Indersdorf" target="_blank">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          Standesamt auf Google Maps
-        </a>
-        <p class="t-desc" style="margin-top:10px;">🅿️ Direkt vorm Standesamt gibt es nur wenige Parkplätze. Wir empfehlen den Parkplatz beim Schulzentrum / Kindergarten – von dort sind es ca. <strong>260 m · 4 Minuten</strong> zu Fuß.</p>
-        <a class="map-link" href="https://maps.app.goo.gl/KXW9HGTg3cjvsry36" target="_blank">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          Parkplatz Schule / Kindergarten
-        </a>
-        <p class="t-desc" style="margin-top:10px;">⏰ Für einen reibungslosen Ablauf bitten wir um Ankunft am Standesamt bis spätestens <strong>11:45 Uhr</strong>.</p>
-        <p class="t-desc" style="margin-top:6px;">🚫 Das Werfen von Reis, Blumen und Konfetti ist leider nicht erlaubt. Seifenblasen oder Luftballons steigen lassen ist herzlich willkommen! 🫧🎈</p>
+        <button class="accordion-btn" onclick="toggleAccordion(this)" aria-expanded="false">
+          <span class="t-title" style="margin:0;">Standesamtliche Trauung</span>
+          <svg class="accordion-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <p class="t-desc" style="margin-top:4px;">Standesamt Markt Indersdorf · Markt Indersdorf</p>
+        <div class="accordion-panel">
+          <div class="accordion-inner">
+            <div>
+              <div class="acc-label">📍 Adresse</div>
+              <p class="acc-text" style="padding-left:24px;">Standesamt Markt Indersdorf<br>Marktplatz 1 · 85229 Markt Indersdorf</p>
+              <a class="map-link" style="margin-left:24px;" href="https://maps.google.com/?q=Marktplatz+1,+85229+Markt+Indersdorf" target="_blank">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                Standesamt auf Google Maps
+              </a>
+            </div>
+            <div>
+              <div class="acc-label">🅿️ Parken</div>
+              <p class="acc-text" style="padding-left:24px;">Direkt vorm Standesamt gibt es nur wenige Parkplätze. Wir empfehlen den Parkplatz beim Schulzentrum / Kindergarten – von dort sind es ca. <strong>260 m · 4 Minuten</strong> zu Fuß.</p>
+              <a class="map-link" style="margin-left:24px;" href="https://maps.app.goo.gl/KXW9HGTg3cjvsry36" target="_blank">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                Parkplatz Schule / Kindergarten
+              </a>
+            </div>
+            <div>
+              <div class="acc-label">⏰ Ankunft</div>
+              <p class="acc-text" style="padding-left:24px;">Für einen reibungslosen Ablauf und einen pünktlichen Start bitten wir um Ankunft am Standesamt bis spätestens <strong>11:45 Uhr</strong>.</p>
+            </div>
+            <div>
+              <div class="acc-label">🌸 Bitte beachten</div>
+              <p class="acc-text" style="padding-left:24px;">Das Werfen von Reis, Blumen und Konfetti ist leider nicht erlaubt. Seifenblasen oder Luftballons steigen lassen ist herzlich willkommen! 🫧🎈</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
+    <!-- ~12:30 Sektempfang -->
     <div class="timeline-item">
       <div class="t-time">~12:30</div>
       <div class="t-dot"></div>
       <div class="t-content">
-        <div class="t-title">Sektempfang &amp; Glückwünsche 🥂</div>
-        <p class="t-desc">Stoßt mit uns auf unser Glück an.</p>
+        <button class="accordion-btn" onclick="toggleAccordion(this)" aria-expanded="false">
+          <span class="t-title" style="margin:0;">Sektempfang &amp; Glückwünsche 🥂</span>
+          <svg class="accordion-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <p class="t-desc" style="margin-top:4px;">Stoßt mit uns auf unser Glück an.</p>
+        <div class="accordion-panel">
+          <div class="accordion-inner">
+            <div>
+              <div class="acc-label">🥂 Der Moment</div>
+              <p class="acc-text" style="padding-left:24px;">Direkt nach der Trauung laden wir euch ein, mit uns auf diesen besonderen Moment anzustoßen. Bei einem Glas Sekt könnt ihr uns eure herzlichsten Glückwünsche überbringen – wir freuen uns über jedes liebe Wort!</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
+    <!-- ~13:30 Familienkreis -->
     <div class="timeline-item">
       <div class="t-time">~13:30</div>
       <div class="t-dot"></div>
       <div class="t-content">
-        <div class="t-title">Gemeinsames Feiern im Familienkreis</div>
-        <p class="t-desc">Ein paar ruhige Stunden im engsten Kreis – bevor der Abend so richtig beginnt.<br><br>
-          Restaurant Alte Gutsscheune<br>
-          Golfpark Gut Häusern · Gut Häusern 2<br>
-          85229 Markt Indersdorf</p>
-        <a class="map-link" href="https://maps.app.goo.gl/rJZRBntvMeGJEakt5" target="_blank">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          Auf Google Maps öffnen
-        </a>
+        <button class="accordion-btn" onclick="toggleAccordion(this)" aria-expanded="false">
+          <span class="t-title" style="margin:0;">Gemeinsames Feiern im Familienkreis</span>
+          <svg class="accordion-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <p class="t-desc" style="margin-top:4px;">Ein paar ruhige Stunden im engsten Kreis – bevor der Abend so richtig beginnt.</p>
+        <div class="accordion-panel">
+          <div class="accordion-inner">
+            <div>
+              <div class="acc-label">📍 Location</div>
+              <p class="acc-text" style="padding-left:24px;">Restaurant Alte Gutsscheune<br>Golfpark Gut Häusern · Gut Häusern 2<br>85229 Markt Indersdorf</p>
+              <a class="map-link" style="margin-left:24px;" href="https://maps.app.goo.gl/rJZRBntvMeGJEakt5" target="_blank">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                Auf Google Maps öffnen
+              </a>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
+    <!-- 18:30 Abendfeier -->
     <div class="timeline-item">
       <div class="t-time">18:30</div>
       <div class="t-dot"></div>
       <div class="t-content">
         <button class="accordion-btn" onclick="toggleAccordion(this)" aria-expanded="false">
-          <span class="t-title" style="margin:0;">Gemeinsam feiern mit Familie und Freunden 🎉</span>
+          <span class="t-title" style="margin:0;">Gemeinsam feiern mit Familie und Freunden</span>
           <svg class="accordion-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
-        <p class="t-desc" style="margin-top:4px;">Jetzt seid ihr dran! Kommt vorbei und feiert mit uns.<br>Kirchstraße 7 · 85238 Petershausen</p>
+        <p class="t-desc" style="margin-top:4px;">Abends möchten wir gerne nochmals zusammenkommen und gemeinsam mit unseren Freunden auf diesen besonderen Moment anstoßen.</p>
         <div class="accordion-panel">
           <div class="accordion-inner">
             <div>

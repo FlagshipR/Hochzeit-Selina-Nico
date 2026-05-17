@@ -562,6 +562,29 @@
     opacity: 0.7;
   }
 
+
+  /* === ACCORDION === */
+  .accordion-btn {
+    display: flex; align-items: center; gap: 10px;
+    background: none; border: none; padding: 0;
+    cursor: pointer; text-align: left; width: 100%; font-family: inherit;
+  }
+  .accordion-btn .t-title { flex: 1; }
+  .accordion-arrow { flex-shrink: 0; color: var(--sage); transition: transform 0.3s ease; }
+  .accordion-btn[aria-expanded="true"] .accordion-arrow { transform: rotate(180deg); }
+  .accordion-panel { overflow: hidden; max-height: 0; transition: max-height 0.4s ease; }
+  .accordion-panel.open { max-height: 700px; }
+  .accordion-inner {
+    margin-top: 16px; padding: 20px 24px;
+    background: var(--sage-pale); border-left: 3px solid var(--sage);
+    display: flex; flex-direction: column; gap: 18px;
+  }
+  .acc-label {
+    font-size: 0.65rem; letter-spacing: 0.25em; text-transform: uppercase;
+    color: var(--sage); margin-bottom: 6px; font-family: 'Jost', sans-serif; font-weight: 300;
+  }
+  .acc-text { font-size: 0.88rem; color: var(--text-light); line-height: 1.65; margin: 0 0 6px; }
+
   /* === ANIMATIONS === */
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(24px); }
@@ -652,60 +675,10 @@
 </section>
 
 
-<!-- ═══════════════════════ PARTY ═══════════════════════ -->
-<div class="divider">
-  <div class="divider-line"></div>
-  <div class="divider-icon">✦</div>
-  <div class="divider-line"></div>
-</div>
-
-<section>
-  <div class="section-label">Die Feier</div>
-  <h2>Wir <em>feiern</em> mit euch</h2>
-  <p style="font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: clamp(1.1rem, 2.5vw, 1.4rem); font-weight: 300; color: var(--text); line-height: 1.6;">Unsere Trauung findet am 12. September im engsten Familienkreis statt – und abends möchten wir gerne mit euch zusammenkommen und gemeinsam auf diesen besonderen Moment anstoßen.</p>
-
-  <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 32px;">
-
-    <!-- Location -->
-    <div style="background: var(--sage-pale); border-left: 3px solid var(--sage); padding: 22px 28px;">
-      <div style="font-size: 0.65rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--sage); margin-bottom: 8px;">Location</div>
-      <p style="font-family: 'Cormorant Garamond', serif; font-size: 1.3rem; font-weight: 400; font-style: italic; color: var(--text); margin: 0 0 8px;">RUNDUM e.V. · Ab 18:30 Uhr 🎉</p>
-      <p style="font-size: 0.88rem; color: var(--text-light); line-height: 1.7; margin: 0 0 10px;">
-        Kirchstraße 7, 85238 Petershausen<br>
-        Im Partyraum gibt es auch einen gemütlichen Nebenraum – ideal für einen erholsamen Power Nap oder um Kids zum Schlafen zu legen. 💤
-      </p>
-      <a class="map-link" href="https://maps.google.com/?q=Kirchstraße+7,+85238+Petershausen" target="_blank">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        Auf Google Maps öffnen
-      </a>
-    </div>
-
-    <!-- Verpflegung -->
-    <div style="background: var(--sage-pale); border-left: 3px solid var(--sage); padding: 22px 28px;">
-      <div style="font-size: 0.65rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--sage); margin-bottom: 8px;">Verpflegung</div>
-      <p style="font-family: 'Cormorant Garamond', serif; font-size: 1.3rem; font-weight: 400; font-style: italic; color: var(--text); margin: 0 0 8px;">Für euer Wohl ist gesorgt 🍽️ 🥂</p>
-      <p style="font-size: 0.88rem; color: var(--text-light); line-height: 1.7; margin: 0;">
-        Ihr müsst euch um nichts kümmern – für ein leckeres Buffet sowie alkoholische und alkoholfreie Getränke ist den ganzen Abend gesorgt. Bitte gebt uns bei der Anmeldung Bescheid, falls ihr besondere Ernährungswünsche habt.
-      </p>
-    </div>
-
-    <!-- Dresscode -->
-    <div style="background: var(--sage-pale); border-left: 3px solid var(--sage); padding: 22px 28px;">
-      <div style="font-size: 0.65rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--sage); margin-bottom: 8px;">Dresscode</div>
-      <p style="font-family: 'Cormorant Garamond', serif; font-size: 1.3rem; font-weight: 400; font-style: italic; color: var(--text); margin: 0 0 8px;">Kommt wie ihr euch wohlfühlt 🌿</p>
-      <p style="font-size: 0.88rem; color: var(--text-light); line-height: 1.7; margin: 0;">
-        Kein strikter Dresscode – ob elegant, smart-casual oder sommerlich-leicht, alles ist willkommen. Hauptsache, ihr fühlt euch wohl und könnt den Abend in vollen Zügen genießen!
-      </p>
-    </div>
-
-  </div>
-
-</section>
-
 <!-- ═══════════════════════ ABLAUFPLAN ═══════════════════════ -->
 <div class="divider">
   <div class="divider-line"></div>
-  <div class="divider-icon">✦</div>
+  <div class="divider-icon">❖</div>
   <div class="divider-line"></div>
 </div>
 
@@ -729,7 +702,7 @@
       <div class="t-time">13:00</div>
       <div class="t-dot"></div>
       <div class="t-content">
-        <div class="t-title">Sektempfang & Glückwünsche 🥂</div>
+        <div class="t-title">Sektempfang &amp; Glückwünsche 🥂</div>
         <p class="t-desc">Stoßt mit uns auf unser Glück an.</p>
       </div>
     </div>
@@ -747,35 +720,31 @@
       <div class="t-time">18:30</div>
       <div class="t-dot"></div>
       <div class="t-content">
-        <div class="t-title">Empfang bei RUNDUM e.V. 🎉</div>
-        <p class="t-desc">Jetzt seid ihr dran! Kommt vorbei und feiert mit uns.<br>Kirchstraße 7 · 85238 Petershausen</p>
-      </div>
-    </div>
-
-    <div class="timeline-item">
-      <div class="t-time">19:00</div>
-      <div class="t-dot"></div>
-      <div class="t-content">
-        <div class="t-title">Buffet eröffnet 🍽️</div>
-        <p class="t-desc">Genießt unser leckeres Buffet – für alle Geschmäcker ist gesorgt. Alkoholische und alkoholfreie Getränke sind den ganzen Abend für euch bereit.</p>
-      </div>
-    </div>
-
-    <div class="timeline-item">
-      <div class="t-time">20:00</div>
-      <div class="t-dot"></div>
-      <div class="t-content">
-        <div class="t-title">Musik & Tanzen 🎶</div>
-        <p class="t-desc">Der Abend gehört euch – tanzt, lacht und feiert mit uns in die Nacht!</p>
-      </div>
-    </div>
-
-    <div class="timeline-item">
-      <div class="t-time" style="font-size:1rem; padding-top:4px;">Open<br>End</div>
-      <div class="t-dot"></div>
-      <div class="t-content">
-        <div class="t-title">Gemeinsam in die Nacht 🌙</div>
-        <p class="t-desc">Wir feiern solange ihr wollt – bis der letzte Tanzschuh aufgibt!</p>
+        <button class="accordion-btn" onclick="toggleAccordion(this)" aria-expanded="false">
+          <span class="t-title" style="margin:0;">Feier bei RUNDUM e.V. 🎉</span>
+          <svg class="accordion-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <p class="t-desc" style="margin-top:4px;">Jetzt seid ihr dran! Kommt vorbei und feiert mit uns.<br>Kirchstraße 7 · 85238 Petershausen</p>
+        <div class="accordion-panel">
+          <div class="accordion-inner">
+            <div>
+              <div class="acc-label">📍 Location</div>
+              <p class="acc-text"><strong>RUNDUM e.V.</strong> · Kirchstraße 7, 85238 Petershausen<br>Im Partyraum gibt es auch einen gemütlichen Nebenraum – ideal für einen erholsamen Power Nap oder um Kids zum Schlafen zu legen. 💤</p>
+              <a class="map-link" href="https://maps.google.com/?q=Kirchstra%C3%9Fe+7,+85238+Petershausen" target="_blank">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                Auf Google Maps öffnen
+              </a>
+            </div>
+            <div>
+              <div class="acc-label">🍽️ Verpflegung</div>
+              <p class="acc-text" style="margin:0;">Für euer Wohl ist gesorgt – ihr müsst euch um nichts kümmern! Ein leckeres Buffet sowie alkoholische und alkoholfreie Getränke stehen den ganzen Abend bereit. Bitte gebt uns bei der Anmeldung Bescheid, falls ihr besondere Ernährungswünsche habt.</p>
+            </div>
+            <div>
+              <div class="acc-label">🌿 Dresscode</div>
+              <p class="acc-text" style="margin:0;">Kein strikter Dresscode – ob elegant, smart-casual oder sommerlich-leicht, alles ist willkommen. Hauptsache, ihr fühlt euch wohl und könnt den Abend in vollen Zügen genießen!</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1111,6 +1080,13 @@
       btn.disabled = false;
       alert('Es gab einen Fehler beim Senden. Bitte melde dich direkt per WhatsApp oder E-Mail bei uns.');
     }
+  }
+
+  function toggleAccordion(btn) {
+    const panel = btn.closest('.t-content').querySelector('.accordion-panel');
+    const expanded = btn.getAttribute('aria-expanded') === 'true';
+    btn.setAttribute('aria-expanded', String(!expanded));
+    panel.classList.toggle('open', !expanded);
   }
 </script>
 

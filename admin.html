@@ -49,6 +49,10 @@
   .stat-card.zusagen  { border-top-color: var(--green); }
   .stat-card.absagen  { border-top-color: var(--red); }
   .stat-card.personen { border-top-color: var(--brown-light); }
+  .stat-card.familie  { border-top-color: #5a7a8c; cursor: pointer; transition: transform 0.15s; }
+  .stat-card.familie:hover { transform: translateY(-2px); }
+  .stat-card.freunde  { border-top-color: #9c7e63; cursor: pointer; transition: transform 0.15s; }
+  .stat-card.freunde:hover { transform: translateY(-2px); }
   .stat-card.duplikate { border-top-color: var(--orange); cursor: pointer; transition: transform 0.15s; }
   .stat-card.duplikate:hover { transform: translateY(-2px); }
   .stat-number { font-family: 'Cormorant Garamond', serif; font-size: 3rem; font-weight: 300; line-height: 1; color: var(--text); }
@@ -87,6 +91,8 @@
   .badge-ja   { background: #e8f4ec; color: var(--green); }
   .badge-nein { background: #f4e8e8; color: var(--red); }
   .badge-dup  { background: #fdebd6; color: var(--orange); font-size: 0.7rem; margin-left: 6px; }
+  .badge-familie { background: #e0ecf4; color: #4a6e80; font-size: 0.72rem; }
+  .badge-freunde { background: #f0ece8; color: var(--brown-light); font-size: 0.72rem; }
 
   .date-cell { font-size: 0.8rem; color: var(--text-light); white-space: nowrap; }
   .empty-state { text-align: center; padding: 60px 20px; color: var(--text-light); }
@@ -154,6 +160,14 @@
       <div class="stat-number" id="stat-personen">–</div>
       <div class="stat-label">Personen erwartet</div>
     </div>
+    <div class="stat-card familie" onclick="setFilter('familie', document.querySelector('.familie-btn'))">
+      <div class="stat-number" id="stat-familie">–</div>
+      <div class="stat-label">👨‍👩‍👧 Familie</div>
+    </div>
+    <div class="stat-card freunde" onclick="setFilter('freunde', document.querySelector('.freunde-btn'))">
+      <div class="stat-number" id="stat-freunde">–</div>
+      <div class="stat-label">🎉 Freunde</div>
+    </div>
     <div class="stat-card duplikate" onclick="setFilter('duplikate', document.querySelector('.duplikat-btn'))">
       <div class="stat-number" id="stat-duplikate">–</div>
       <div class="stat-label">⚠️ Duplikate</div>
@@ -167,6 +181,8 @@
         <button class="filter-btn active"       onclick="setFilter('alle', this)">Alle</button>
         <button class="filter-btn"              onclick="setFilter('ja', this)">Zusagen</button>
         <button class="filter-btn"              onclick="setFilter('nein', this)">Absagen</button>
+        <button class="filter-btn familie-btn"  onclick="setFilter('familie', this)">👨‍👩‍👧 Familie</button>
+        <button class="filter-btn freunde-btn"  onclick="setFilter('freunde', this)">🎉 Freunde</button>
         <button class="filter-btn duplikat-btn" onclick="setFilter('duplikate', this)">⚠️ Duplikate</button>
       </div>
     </div>
@@ -283,10 +299,15 @@
       personen += !isNaN(p) ? p : (r.personen && r.personen.includes('4') ? 4 : 1);
     });
 
+    const familie = allData.filter(r => r.kategorie === 'Familie');
+    const freunde = allData.filter(r => !r.kategorie || r.kategorie !== 'Familie');
+
     document.getElementById('stat-gesamt').textContent    = allData.length;
     document.getElementById('stat-zusagen').textContent   = zusagen.length;
     document.getElementById('stat-absagen').textContent   = absagen.length;
     document.getElementById('stat-personen').textContent  = personen;
+    document.getElementById('stat-familie').textContent   = familie.length;
+    document.getElementById('stat-freunde').textContent   = freunde.length;
     document.getElementById('stat-duplikate').textContent = duplicateIds.size;
   }
 
@@ -301,6 +322,8 @@
     let data = [...allData];
     if (currentFilter === 'ja')        data = data.filter(r => r.zusage && r.zusage.includes('Ja'));
     if (currentFilter === 'nein')      data = data.filter(r => r.zusage && r.zusage.includes('nicht'));
+    if (currentFilter === 'familie')   data = data.filter(r => r.kategorie === 'Familie');
+    if (currentFilter === 'freunde')   data = data.filter(r => !r.kategorie || r.kategorie !== 'Familie');
     if (currentFilter === 'duplikate') data = data.filter(r => duplicateIds.has(r.id));
     data.sort((a,b) => { const va=a[sortCol]||'', vb=b[sortCol]||''; return sortAsc?va.localeCompare(vb):vb.localeCompare(va); });
 
@@ -324,10 +347,14 @@
       const dupBadge = isLatest ? `<span class="badge badge-dup">⚠️ Duplikat</span>`
                      : isOld    ? `<span class="badge-dup-old">⚠️ Veraltet</span>`
                      : '';
+      const katBadge = r.kategorie === 'Familie'
+        ? `<span class="badge badge-familie">👨‍👩‍👧 Familie</span>`
+        : `<span class="badge badge-freunde">🎉 Freunde</span>`;
       const rowClass = (isLatest ? 'is-duplicate-latest' : isOld ? 'is-duplicate-old' : '') + (extraClass ? ' '+extraClass : '');
       return `<tr class="${rowClass}">
         <td><strong>${r.vorname||'–'} ${r.nachname||''}</strong>${dupBadge}</td>
         <td>${badge}</td>
+        <td>${katBadge}</td>
         <td>${r.personen||'–'}</td>
         <td>${r.email?`<a href="mailto:${r.email}" style="color:var(--sage);text-decoration:none;">${r.email}</a>`:'<span style="opacity:0.4">–</span>'}</td>
         <td>${r.anmerkungen||'<span style="opacity:0.4">–</span>'}</td>
@@ -391,6 +418,7 @@
         <thead><tr>
           <th onclick="sortBy('nachname')">Name ${sortCol==='nachname'?(sortAsc?'↑':'↓'):''}</th>
           <th onclick="sortBy('zusage')">Antwort ${sortCol==='zusage'?(sortAsc?'↑':'↓'):''}</th>
+          <th onclick="sortBy('kategorie')">Gruppe ${sortCol==='kategorie'?(sortAsc?'↑':'↓'):''}</th>
           <th>Personen</th><th>E-Mail</th><th>Anmerkungen</th>
           <th onclick="sortBy('created_at')">Datum ${sortCol==='created_at'?(sortAsc?'↑':'↓'):''}</th>
         </tr></thead>

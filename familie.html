@@ -580,8 +580,10 @@
     display: flex; flex-direction: column; gap: 18px;
   }
   .acc-label {
-    font-size: 0.65rem; letter-spacing: 0.25em; text-transform: uppercase;
-    color: var(--sage); margin-bottom: 6px; font-family: 'Jost', sans-serif; font-weight: 300;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.1rem; font-weight: 400;
+    color: var(--text);
+    margin-bottom: 6px;
   }
   .acc-text { font-size: 0.88rem; color: var(--text-light); line-height: 1.65; margin: 0 0 6px; }
 
@@ -721,7 +723,7 @@
       <div class="t-dot"></div>
       <div class="t-content">
         <button class="accordion-btn" onclick="toggleAccordion(this)" aria-expanded="false">
-          <span class="t-title" style="margin:0;">Feier bei RUNDUM e.V. 🎉</span>
+          <span class="t-title" style="margin:0;">Gemeinsam feiern mit Familie und Freunden 🎉</span>
           <svg class="accordion-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <p class="t-desc" style="margin-top:4px;">Jetzt seid ihr dran! Kommt vorbei und feiert mit uns.<br>Kirchstraße 7 · 85238 Petershausen</p>
@@ -729,19 +731,19 @@
           <div class="accordion-inner">
             <div>
               <div class="acc-label">📍 Location</div>
-              <p class="acc-text"><strong>RUNDUM e.V.</strong> · Kirchstraße 7, 85238 Petershausen<br>Im Partyraum gibt es auch einen gemütlichen Nebenraum – ideal für einen erholsamen Power Nap oder um Kids zum Schlafen zu legen. 💤</p>
-              <a class="map-link" href="https://maps.google.com/?q=Kirchstra%C3%9Fe+7,+85238+Petershausen" target="_blank">
+              <p class="acc-text" style="padding-left:24px;"><strong>RUNDUM e.V.</strong> · Kirchstraße 7, 85238 Petershausen<br>Im Partyraum gibt es auch einen gemütlichen Nebenraum – ideal für einen erholsamen Power Nap oder um Kids zum Schlafen zu legen. 💤</p>
+              <a class="map-link" style="margin-left:24px;" href="https://maps.google.com/?q=Kirchstra%C3%9Fe+7,+85238+Petershausen" target="_blank">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                 Auf Google Maps öffnen
               </a>
             </div>
             <div>
               <div class="acc-label">🍽️ Verpflegung</div>
-              <p class="acc-text" style="margin:0;">Für euer Wohl ist gesorgt – ihr müsst euch um nichts kümmern! Ein leckeres Buffet sowie alkoholische und alkoholfreie Getränke stehen den ganzen Abend bereit. Bitte gebt uns bei der Anmeldung Bescheid, falls ihr besondere Ernährungswünsche habt.</p>
+              <p class="acc-text" style="margin:0; padding-left:24px;">Für euer Wohl ist gesorgt – ihr müsst euch um nichts kümmern! Ein leckeres Buffet sowie alkoholische und alkoholfreie Getränke stehen den ganzen Abend bereit. Bitte gebt uns bei der Anmeldung Bescheid, falls ihr besondere Ernährungswünsche habt.</p>
             </div>
             <div>
               <div class="acc-label">🌿 Dresscode</div>
-              <p class="acc-text" style="margin:0;">Kein strikter Dresscode – ob elegant, smart-casual oder sommerlich-leicht, alles ist willkommen. Hauptsache, ihr fühlt euch wohl und könnt den Abend in vollen Zügen genießen!</p>
+              <p class="acc-text" style="margin:0; padding-left:24px;">Kein strikter Dresscode – ob elegant, smart-casual oder sommerlich-leicht, alles ist willkommen. Hauptsache, ihr fühlt euch wohl und könnt den Abend in vollen Zügen genießen!</p>
             </div>
           </div>
         </div>
@@ -869,40 +871,6 @@
   </div>
 </section>
 
-
-<!-- ═══════════════════════ ÜBERNACHTUNG ═══════════════════════ -->
-<div class="divider">
-  <div class="divider-line"></div>
-  <div class="divider-icon">✦</div>
-  <div class="divider-line"></div>
-</div>
-
-<section>
-  <div class="section-label">Übernachtung</div>
-  <h2><em>Übernachtungs</em>möglichkeiten</h2>
-  <p>Wenn ihr einen Übernachtungsplatz benötigt, empfehlen wir das <strong>Hotel Pöllners</strong> direkt in Petershausen:</p>
-
-  <div class="location-card" style="margin-top:24px;">
-    <h3>🏨 Hotel Pöllners</h3>
-    <address>
-      Fraunhoferring 5<br>
-      85238 Petershausen<br>
-      <a href="tel:015122051867" style="color:var(--sage); text-decoration:none;">📞 01512 / 2051867</a>
-    </address>
-    <div style="display:flex; flex-wrap:wrap; gap:12px; margin-top:14px;">
-      <a class="map-link" href="https://www.hotel-poellners.de/" target="_blank" style="border-bottom:none; padding: 6px 14px; background: var(--sage-pale); color: var(--sage);">
-        🌐 hotel-poellners.de
-      </a>
-      <a class="map-link" href="https://www.booking.com/searchresults.de.html?aid=311092&label=pollners-TArbZLKiFsT73lMzXF45xAS590137154107%3Apl%3Ata%3Ap1%3Ap2%3Aac%3Aap%3Aneg%3Afi%3Atikwd-1360373954040%3Alp9114997%3Ali%3Adec%3Adm%3Appccp%3DUmFuZG9tSVYkc2RlIyh9YTptaWLFanNKScTlTR7Hrwg&gclid=Cj0KCQjw_IXQBhCkARIsADqELbJhpaLSI9WCd5ru1DQPCNq7YNP4gLwMH4eTi9eX5xEEs9ximxrWPJwaArkyEALw_wcB&highlighted_hotels=7224541&checkin=2026-09-12&redirected=1&city=-1842265&hlrd=with_av&source=hotel&checkout=2026-09-13&keep_landing=1&sid=6def39cbae8c6b8a17a5183ae0ef92ca" target="_blank" style="border-bottom:none; padding: 6px 14px; background: var(--beige-dark); color: var(--brown-light);">
-        📅 Auf Booking.com
-      </a>
-    </div>
-  </div>
-
-  <p style="margin-top:20px; font-size:0.9rem; color:var(--text-light);">
-    Wenn ihr weitere Alternativen benötigt, meldet euch gerne bei uns. ♡
-  </p>
-</section>
 
 <!-- ═══════════════════════ TRAUZEUGINNEN ═══════════════════════ -->
 <div class="divider">

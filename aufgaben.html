@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aufgaben – Selina & Nico</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Jost:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --sage: #7a8c6e; --sage-light: #a8b89a; --sage-pale: #d6e0cc;
+    --beige: #f2ead8; --beige-dark: #e0d4b8; --cream: #faf7f0;
+    --brown-light: #9c7e63; --text: #3a3228; --text-light: #6b5f52;
+    --green: #4a7c59; --red: #a05252; --orange: #c47d2e;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--cream); font-family: 'Jost', sans-serif; color: var(--text); min-height: 100vh; }
+
+  /* LOGIN */
+  #login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 30px; }
+  .login-box { background: var(--beige); padding: 48px 40px; max-width: 380px; width: 100%; text-align: center; }
+  .login-title { font-family: 'Cormorant Garamond', serif; font-weight: 300; font-size: 2rem; color: var(--text); margin-bottom: 6px; }
+  .login-title em { font-style: italic; color: var(--sage); }
+  .login-sub { font-size: 0.72rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--brown-light); margin-bottom: 32px; }
+  .login-box input[type="password"] { width: 100%; background: var(--cream); border: 1px solid var(--beige-dark); padding: 13px 16px; font-family: 'Jost', sans-serif; font-size: 0.95rem; color: var(--text); outline: none; text-align: center; letter-spacing: 0.1em; transition: border-color 0.2s; margin-bottom: 12px; }
+  .login-box input[type="password"]:focus { border-color: var(--sage); }
+  .login-btn { width: 100%; background: var(--sage); color: white; border: none; padding: 14px; font-family: 'Jost', sans-serif; font-size: 0.78rem; letter-spacing: 0.25em; text-transform: uppercase; cursor: pointer; transition: background 0.2s; }
+  .login-btn:hover { background: var(--sage-light); }
+  .login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .login-error { margin-top: 12px; font-size: 0.8rem; color: var(--red); opacity: 0; transition: opacity 0.2s; }
+  .login-error.show { opacity: 1; }
+
+  /* APP */
+  #app-content { display: none; }
+
+  header { background: var(--beige); border-bottom: 1px solid var(--beige-dark); padding: 28px 32px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+  .header-title { font-family: 'Cormorant Garamond', serif; font-weight: 300; font-size: 1.8rem; color: var(--text); }
+  .header-title em { font-style: italic; color: var(--sage); }
+  .header-sub { font-size: 0.75rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--brown-light); margin-top: 4px; }
+  .header-btns { display: flex; align-items: center; gap: 10px; }
+  .whoami { font-size: 0.78rem; color: var(--text-light); margin-right: 6px; }
+  .whoami .badge { display: inline-block; background: var(--sage); color: white; font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 8px; border-radius: 10px; margin-left: 6px; }
+  .btn-refresh { display: flex; align-items: center; gap: 8px; background: var(--sage); color: white; border: none; padding: 10px 20px; font-family: 'Jost', sans-serif; font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase; cursor: pointer; transition: background 0.2s; }
+  .btn-refresh:hover { background: var(--sage-light); }
+  .btn-logout { display: flex; align-items: center; gap: 8px; background: transparent; color: var(--text-light); border: 1px solid var(--beige-dark); padding: 10px 20px; font-family: 'Jost', sans-serif; font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase; cursor: pointer; transition: all 0.2s; }
+  .btn-logout:hover { border-color: var(--sage); color: var(--sage); }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; padding: 28px 32px; max-width: 1100px; margin: 0 auto; }
+  .stat-card { background: var(--beige); padding: 20px 24px; text-align: center; border-top: 3px solid var(--sage-pale); }
+  .stat-card.gesamt   { border-top-color: var(--sage); }
+  .stat-card.offen    { border-top-color: var(--orange); }
+  .stat-card.erledigt { border-top-color: var(--green); }
+  .stat-number { font-family: 'Cormorant Garamond', serif; font-size: 3rem; font-weight: 300; line-height: 1; color: var(--text); }
+  .stat-label { font-size: 0.68rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-light); margin-top: 6px; }
+
+  .form-wrap { max-width: 1100px; margin: 0 auto; padding: 0 32px 8px; }
+  .add-form { background: var(--beige); padding: 24px; display: grid; grid-template-columns: 1.4fr 1.8fr 1fr auto; gap: 12px; align-items: end; }
+  .add-form .field { display: flex; flex-direction: column; gap: 6px; }
+  .add-form label { font-size: 0.65rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-light); }
+  .add-form input[type="text"], .add-form select {
+    background: var(--cream); border: 1px solid var(--beige-dark); padding: 11px 12px;
+    font-family: 'Jost', sans-serif; font-size: 0.9rem; color: var(--text); outline: none;
+  }
+  .add-form input[type="text"]:focus, .add-form select:focus { border-color: var(--sage); }
+  .btn-add { background: var(--sage); color: white; border: none; padding: 12px 22px; font-family: 'Jost', sans-serif; font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase; cursor: pointer; transition: background 0.2s; white-space: nowrap; }
+  .btn-add:hover { background: var(--sage-light); }
+  .form-error { color: var(--red); font-size: 0.8rem; margin-top: 10px; display: none; }
+  .form-error.show { display: block; }
+
+  .table-wrap { max-width: 1100px; margin: 0 auto 60px; padding: 0 32px; }
+  .table-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+  .table-header h2 { font-family: 'Cormorant Garamond', serif; font-weight: 300; font-size: 1.5rem; color: var(--text); }
+  .filter-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .filter-btn { padding: 6px 14px; font-family: 'Jost', sans-serif; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; border: 1px solid var(--beige-dark); background: var(--cream); color: var(--text-light); cursor: pointer; transition: all 0.2s; }
+  .filter-btn.active, .filter-btn:hover { background: var(--sage); color: white; border-color: var(--sage); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  thead tr { background: var(--beige-dark); }
+  th { text-align: left; padding: 12px 16px; font-size: 0.68rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-light); font-weight: 400; white-space: nowrap; }
+  tbody tr { border-bottom: 1px solid var(--beige-dark); transition: background 0.15s; }
+  tbody tr:hover { background: var(--beige); }
+  tbody tr.is-erledigt { opacity: 0.55; }
+  td { padding: 12px 16px; vertical-align: top; }
+  td.titel-col { font-weight: 400; }
+  td.beschreibung-col { color: var(--text-light); font-size: 0.85rem; max-width: 280px; }
+  .status-pill { display: inline-block; padding: 3px 10px; font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 10px; cursor: pointer; }
+  .status-pill.offen { background: #fbe9d2; color: var(--orange); }
+  .status-pill.erledigt { background: #dcebe0; color: var(--green); }
+  .status-pill:not(.clickable) { cursor: default; }
+  .btn-delete { background: transparent; border: 1px solid var(--beige-dark); color: var(--text-light); padding: 6px 12px; font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; transition: all 0.2s; }
+  .btn-delete:hover { border-color: var(--red); color: var(--red); }
+  .no-action { color: var(--text-light); font-size: 0.75rem; opacity: 0.5; }
+
+  .loading { text-align: center; padding: 60px; color: var(--text-light); }
+  .empty-state { text-align: center; padding: 60px; color: var(--text-light); }
+  .last-updated { font-size: 0.72rem; color: var(--text-light); text-align: right; padding: 0 32px 20px; max-width: 1100px; margin: 0 auto; opacity: 0.7; }
+
+  @media (max-width: 700px) {
+    header, .stats, .form-wrap, .table-wrap { padding-left: 16px; padding-right: 16px; }
+    .add-form { grid-template-columns: 1fr; }
+    .table-wrap { overflow-x: auto; }
+    td, th { padding: 10px; }
+    .login-box { padding: 36px 24px; }
+    td.beschreibung-col { max-width: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-title"><em>Selina & Nico</em></div>
+    <div class="login-sub">Aufgabenliste · Dein Passwort</div>
+    <input type="password" id="pw-input" placeholder="Passwort eingeben"
+      onkeydown="if(event.key==='Enter') login()">
+    <button class="login-btn" id="login-btn" onclick="login()">Anmelden</button>
+    <div class="login-error" id="login-error">Falsches Passwort. Bitte erneut versuchen.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-content">
+
+  <header>
+    <div>
+      <div class="header-title"><em>Selina & Nico</em> · Aufgaben</div>
+      <div class="header-sub">Wer macht was?</div>
+    </div>
+    <div class="header-btns">
+      <span class="whoami" id="whoami"></span>
+      <button class="btn-refresh" onclick="loadAufgaben()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Aktualisieren
+      </button>
+      <button class="btn-logout" onclick="logout()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Abmelden
+      </button>
+    </div>
+  </header>
+
+  <div class="stats">
+    <div class="stat-card gesamt">
+      <div class="stat-number" id="stat-gesamt">–</div>
+      <div class="stat-label">Aufgaben gesamt</div>
+    </div>
+    <div class="stat-card offen">
+      <div class="stat-number" id="stat-offen">–</div>
+      <div class="stat-label">Offen</div>
+    </div>
+    <div class="stat-card erledigt">
+      <div class="stat-number" id="stat-erledigt">–</div>
+      <div class="stat-label">Erledigt</div>
+    </div>
+  </div>
+
+  <div class="form-wrap">
+    <div class="add-form">
+      <div class="field">
+        <label for="f-titel">Aufgabe</label>
+        <input type="text" id="f-titel" placeholder="z.B. Blumen abholen">
+      </div>
+      <div class="field">
+        <label for="f-beschreibung">Details (optional)</label>
+        <input type="text" id="f-beschreibung" placeholder="z.B. Freitag 14 Uhr beim Floristen">
+      </div>
+      <div class="field">
+        <label for="f-zugewiesen">Zugewiesen an</label>
+        <select id="f-zugewiesen">
+          <option value="">– niemand –</option>
+        </select>
+      </div>
+      <button class="btn-add" onclick="addAufgabe()">+ Hinzufügen</button>
+    </div>
+    <div class="form-error" id="form-error"></div>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-header">
+      <h2>Alle Aufgaben</h2>
+      <div class="filter-group">
+        <button class="filter-btn active" onclick="setFilter('alle', this)">Alle</button>
+        <button class="filter-btn" onclick="setFilter('offen', this)">Offen</button>
+        <button class="filter-btn" onclick="setFilter('erledigt', this)">Erledigt</button>
+        <button class="filter-btn" onclick="setFilter('meine', this)">Meine</button>
+      </div>
+    </div>
+    <div id="table-container">
+      <div class="loading">Lade Daten</div>
+    </div>
+  </div>
+
+  <div class="last-updated" id="last-updated"></div>
+
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://jglfuixuxqonltromtax.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpnbGZ1aXh1eHFvbmx0cm9tdGF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzNzU5MjAsImV4cCI6MjA5Mzk1MTkyMH0.QthneaLOwVSjqS_2tHr2_GRSWfNE9nkY-9zEWIh0VVU';
+  const SESSION_KEY  = 'aufgaben_session';
+
+  let me = null;            // { id, name, is_master, passwort }
+  let allData = [];
+  let personen = [];
+  let currentFilter = 'alle';
+  let autoRefresh;
+
+  function rpcHeaders() {
+    return {
+      'Content-Type': 'application/json',
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`
+    };
+  }
+
+  async function login() {
+    const pw = document.getElementById('pw-input').value;
+    const btn = document.getElementById('login-btn');
+    if (!pw) return;
+    btn.disabled = true;
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/login_person`, {
+        method: 'POST',
+        headers: rpcHeaders(),
+        body: JSON.stringify({ p_passwort: pw })
+      });
+      const rows = await res.json();
+      if (!res.ok || !Array.isArray(rows) || rows.length === 0) {
+        throw new Error('Falsches Passwort');
+      }
+      me = { ...rows[0], passwort: pw };
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(me));
+      showApp();
+    } catch (err) {
+      const errEl = document.getElementById('login-error');
+      errEl.classList.add('show');
+      document.getElementById('pw-input').value = '';
+      setTimeout(() => errEl.classList.remove('show'), 3000);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function logout() {
+    clearInterval(autoRefresh);
+    sessionStorage.removeItem(SESSION_KEY);
+    me = null;
+    document.getElementById('app-content').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('pw-input').value = '';
+  }
+
+  function showApp() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-content').style.display = 'block';
+    document.getElementById('whoami').innerHTML =
+      `Hallo, ${me.name}${me.is_master ? '<span class="badge">Master</span>' : ''}`;
+    loadPersonen();
+    loadAufgaben();
+    autoRefresh = setInterval(loadAufgaben, 60000);
+  }
+
+  async function loadPersonen() {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/personen_public?select=*&order=name.asc`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      });
+      personen = await res.json();
+      const sel = document.getElementById('f-zugewiesen');
+      sel.innerHTML = '<option value="">– niemand –</option>' +
+        personen.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+    } catch (err) { /* Dropdown bleibt dann leer, nicht kritisch */ }
+  }
+
+  async function loadAufgaben() {
+    document.getElementById('table-container').innerHTML = '<div class="loading">Lade Daten</div>';
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/aufgaben_view?select=*&order=created_at.desc`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      allData = await res.json();
+      updateStats();
+      renderTable();
+      const now = new Date();
+      document.getElementById('last-updated').textContent =
+        `Zuletzt aktualisiert: ${now.toLocaleDateString('de-DE')} um ${now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})} Uhr`;
+    } catch (err) {
+      document.getElementById('table-container').innerHTML =
+        `<div class="empty-state"><p>Fehler beim Laden.<br><small>${escapeHtml(err.message)}</small></p></div>`;
+    }
+  }
+
+  function updateStats() {
+    document.getElementById('stat-gesamt').textContent   = allData.length;
+    document.getElementById('stat-offen').textContent    = allData.filter(a => a.status === 'offen').length;
+    document.getElementById('stat-erledigt').textContent = allData.filter(a => a.status === 'erledigt').length;
+  }
+
+  function setFilter(f, btn) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderTable();
+  }
+
+  function renderTable() {
+    let rows = allData;
+    if (currentFilter === 'offen')    rows = rows.filter(a => a.status === 'offen');
+    if (currentFilter === 'erledigt') rows = rows.filter(a => a.status === 'erledigt');
+    if (currentFilter === 'meine')    rows = rows.filter(a => a.erstellt_von_id === me.id || a.zugewiesen_an_id === me.id);
+
+    if (rows.length === 0) {
+      document.getElementById('table-container').innerHTML =
+        '<div class="empty-state"><p>Keine Aufgaben gefunden.</p></div>';
+      return;
+    }
+
+    const html = `
+      <table>
+        <thead>
+          <tr>
+            <th>Aufgabe</th>
+            <th>Details</th>
+            <th>Zugewiesen an</th>
+            <th>Angelegt von</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(a => rowHtml(a)).join('')}
+        </tbody>
+      </table>`;
+    document.getElementById('table-container').innerHTML = html;
+  }
+
+  function rowHtml(a) {
+    const canManage = me.is_master || a.erstellt_von_id === me.id;
+    const canToggle = me.is_master || a.erstellt_von_id === me.id || a.zugewiesen_an_id === me.id;
+    const nextStatus = a.status === 'offen' ? 'erledigt' : 'offen';
+
+    return `
+      <tr class="${a.status === 'erledigt' ? 'is-erledigt' : ''}">
+        <td class="titel-col">${escapeHtml(a.titel)}</td>
+        <td class="beschreibung-col">${escapeHtml(a.beschreibung || '–')}</td>
+        <td>${escapeHtml(a.zugewiesen_an_name || '–')}</td>
+        <td>${escapeHtml(a.erstellt_von_name)}</td>
+        <td>
+          <span class="status-pill ${a.status} ${canToggle ? 'clickable' : ''}"
+                ${canToggle ? `onclick="toggleStatus('${a.id}','${nextStatus}')"` : ''}>
+            ${a.status === 'offen' ? 'Offen' : 'Erledigt'}
+          </span>
+        </td>
+        <td>
+          ${canManage
+            ? `<button class="btn-delete" onclick="removeAufgabe('${a.id}')">Löschen</button>`
+            : '<span class="no-action">–</span>'}
+        </td>
+      </tr>`;
+  }
+
+  async function addAufgabe() {
+    const titelEl = document.getElementById('f-titel');
+    const beschreibungEl = document.getElementById('f-beschreibung');
+    const zugewiesenEl = document.getElementById('f-zugewiesen');
+    const errEl = document.getElementById('form-error');
+    errEl.classList.remove('show');
+
+    const titel = titelEl.value.trim();
+    if (!titel) {
+      errEl.textContent = 'Bitte einen Titel eingeben.';
+      errEl.classList.add('show');
+      return;
+    }
+
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/add_aufgabe`, {
+        method: 'POST',
+        headers: rpcHeaders(),
+        body: JSON.stringify({
+          p_passwort: me.passwort,
+          p_titel: titel,
+          p_beschreibung: beschreibungEl.value.trim(),
+          p_zugewiesen_an: zugewiesenEl.value || null
+        })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Fehler beim Speichern');
+      }
+      titelEl.value = '';
+      beschreibungEl.value = '';
+      zugewiesenEl.value = '';
+      loadAufgaben();
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.classList.add('show');
+    }
+  }
+
+  async function removeAufgabe(id) {
+    if (!confirm('Diese Aufgabe wirklich löschen?')) return;
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/delete_aufgabe`, {
+        method: 'POST',
+        headers: rpcHeaders(),
+        body: JSON.stringify({ p_passwort: me.passwort, p_aufgabe_id: id })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Fehler beim Löschen');
+      }
+      loadAufgaben();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  async function toggleStatus(id, newStatus) {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/update_aufgabe_status`, {
+        method: 'POST',
+        headers: rpcHeaders(),
+        body: JSON.stringify({ p_passwort: me.passwort, p_aufgabe_id: id, p_status: newStatus })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Fehler beim Aktualisieren');
+      }
+      loadAufgaben();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+  }
+
+  // Session aus vorherigem Login wiederherstellen
+  (function initSession() {
+    const saved = sessionStorage.getItem(SESSION_KEY);
+    if (saved) {
+      try {
+        me = JSON.parse(saved);
+        showApp();
+      } catch (e) { sessionStorage.removeItem(SESSION_KEY); }
+    }
+  })();
+</script>
+
+</body>
+</html>

@@ -41,7 +41,10 @@ create or replace view personen_public as
   select id, name, is_master from personen;
 grant select on personen_public to anon;
 
--- Öffentliche Sicht auf Aufgaben mit aufgelösten Namen
+-- Sicht auf Aufgaben mit aufgelösten Namen. NICHT an anon freigegeben,
+-- da sonst jeder mit dem anon-Key alle Aufgaben aller Personen abrufen
+-- könnte, egal was die App im Frontend anzeigt. Zugriff nur über
+-- list_aufgaben() unten.
 create or replace view aufgaben_view as
   select
     a.id, a.titel, a.beschreibung, a.status, a.created_at,
@@ -50,7 +53,38 @@ create or replace view aufgaben_view as
   from aufgaben a
   left join personen p1 on p1.id = a.zugewiesen_an
   join personen p2 on p2.id = a.erstellt_von;
-grant select on aufgaben_view to anon;
+revoke select on aufgaben_view from anon;
+
+-- Aufgaben auflisten: Master sehen alle, alle anderen nur Aufgaben, die
+-- sie selbst angelegt haben oder die ihnen zugewiesen sind.
+create or replace function list_aufgaben(p_passwort text)
+returns table(
+  id uuid, titel text, beschreibung text, status text, created_at timestamptz,
+  zugewiesen_an_id uuid, zugewiesen_an_name text,
+  erstellt_von_id uuid, erstellt_von_name text
+)
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v_person_id uuid;
+  v_is_master boolean;
+begin
+  select personen.id, personen.is_master into v_person_id, v_is_master
+    from personen where passwort = p_passwort;
+  if v_person_id is null then
+    raise exception 'Ungültiges Passwort';
+  end if;
+
+  if v_is_master then
+    return query select * from aufgaben_view order by aufgaben_view.created_at desc;
+  else
+    return query select * from aufgaben_view
+      where aufgaben_view.erstellt_von_id = v_person_id or aufgaben_view.zugewiesen_an_id = v_person_id
+      order by aufgaben_view.created_at desc;
+  end if;
+end;
+$$;
+grant execute on function list_aufgaben(text) to anon;
 
 -- Login: Passwort -> Person (nur bei korrektem Passwort wird was zurückgegeben)
 create or replace function login_person(p_passwort text)

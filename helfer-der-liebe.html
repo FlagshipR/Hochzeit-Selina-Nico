@@ -191,12 +191,11 @@
 
   <div class="table-wrap">
     <div class="table-header">
-      <h2>Alle Aufgaben</h2>
+      <h2 id="table-title">Alle Aufgaben</h2>
       <div class="filter-group">
         <button class="filter-btn active" onclick="setFilter('alle', this)">Alle</button>
         <button class="filter-btn" onclick="setFilter('offen', this)">Offen</button>
         <button class="filter-btn" onclick="setFilter('erledigt', this)">Erledigt</button>
-        <button class="filter-btn" onclick="setFilter('meine', this)">Meine</button>
       </div>
     </div>
     <div id="table-container">
@@ -298,6 +297,7 @@
     document.getElementById('app-content').style.display = 'block';
     document.getElementById('whoami').innerHTML =
       `Hallo, ${me.name}${me.is_master ? '<span class="badge">Master</span>' : ''}`;
+    document.getElementById('table-title').textContent = me.is_master ? 'Alle Aufgaben' : 'Deine Aufgaben';
     if (me.is_master) {
       document.getElementById('personen-panel').style.display = 'block';
       document.getElementById('p-passwort').value = generatePassword();
@@ -440,8 +440,10 @@
   async function loadAufgaben() {
     document.getElementById('table-container').innerHTML = '<div class="loading">Lade Daten</div>';
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/aufgaben_view?select=*&order=created_at.desc`, {
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/list_aufgaben`, {
+        method: 'POST',
+        headers: rpcHeaders(),
+        body: JSON.stringify({ p_passwort: me.passwort })
       });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       allData = await res.json();
@@ -473,7 +475,6 @@
     let rows = allData;
     if (currentFilter === 'offen')    rows = rows.filter(a => a.status === 'offen');
     if (currentFilter === 'erledigt') rows = rows.filter(a => a.status === 'erledigt');
-    if (currentFilter === 'meine')    rows = rows.filter(a => a.erstellt_von_id === me.id || a.zugewiesen_an_id === me.id);
 
     if (rows.length === 0) {
       document.getElementById('table-container').innerHTML =

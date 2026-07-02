@@ -148,9 +148,119 @@ end;
 $$;
 grant execute on function update_aufgabe_status(text, uuid, text) to anon;
 
--- Beispiel-Personen anlegen (Passwörter danach im Supabase Table Editor
--- individuell anpassen und an die jeweilige Person weitergeben):
--- insert into personen (name, passwort, is_master) values
---   ('Selina', 'ÄNDERN-selina', true),
---   ('Nico',   'ÄNDERN-nico',   true),
---   ('Julia',  'ÄNDERN-julia',  false);
+-- Neue Person anlegen: nur Master dürfen das. So können Selina & Nico
+-- Helfer direkt auf der Seite anlegen, ohne das Supabase-Dashboard oder
+-- git anzufassen (Passwörter landen dadurch nie im Repo/in der Git-Historie).
+create or replace function add_person(
+  p_passwort_master text, p_name text, p_neues_passwort text, p_is_master boolean default false
+)
+returns uuid
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v_is_master boolean;
+  v_new_id uuid;
+begin
+  select is_master into v_is_master from personen where passwort = p_passwort_master;
+  if v_is_master is null then
+    raise exception 'Ungültiges Passwort';
+  end if;
+  if not v_is_master then
+    raise exception 'Keine Berechtigung, Personen anzulegen';
+  end if;
+  if p_name is null or trim(p_name) = '' then
+    raise exception 'Name darf nicht leer sein';
+  end if;
+  if p_neues_passwort is null or length(p_neues_passwort) < 4 then
+    raise exception 'Passwort muss mindestens 4 Zeichen haben';
+  end if;
+
+  insert into personen (name, passwort, is_master)
+  values (trim(p_name), p_neues_passwort, coalesce(p_is_master, false))
+  returning id into v_new_id;
+
+  return v_new_id;
+exception
+  when unique_violation then
+    raise exception 'Dieses Passwort ist schon vergeben, bitte ein anderes wählen';
+end;
+$$;
+grant execute on function add_person(text, text, text, boolean) to anon;
+
+-- Person löschen: nur Master. Der letzte Master kann sich nicht selbst
+-- aussperren -> ein Master kann nicht gelöscht werden, solange er der
+-- einzige ist.
+create or replace function delete_person(p_passwort_master text, p_person_id uuid)
+returns boolean
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v_is_master boolean;
+  v_target_is_master boolean;
+  v_master_count int;
+begin
+  select is_master into v_is_master from personen where passwort = p_passwort_master;
+  if v_is_master is null then
+    raise exception 'Ungültiges Passwort';
+  end if;
+  if not v_is_master then
+    raise exception 'Keine Berechtigung, Personen zu löschen';
+  end if;
+
+  select is_master into v_target_is_master from personen where id = p_person_id;
+  if v_target_is_master is null then
+    return false;
+  end if;
+
+  if v_target_is_master then
+    select count(*) into v_master_count from personen where is_master;
+    if v_master_count <= 1 then
+      raise exception 'Der letzte Master kann nicht gelöscht werden';
+    end if;
+  end if;
+
+  delete from personen where id = p_person_id;
+  return true;
+end;
+$$;
+grant execute on function delete_person(text, uuid) to anon;
+
+-- Passwort einer Person zurücksetzen: nur Master (z.B. wenn jemand sein
+-- Passwort vergessen hat).
+create or replace function reset_person_passwort(p_passwort_master text, p_person_id uuid, p_neues_passwort text)
+returns boolean
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v_is_master boolean;
+begin
+  select is_master into v_is_master from personen where passwort = p_passwort_master;
+  if v_is_master is null then
+    raise exception 'Ungültiges Passwort';
+  end if;
+  if not v_is_master then
+    raise exception 'Keine Berechtigung';
+  end if;
+  if p_neues_passwort is null or length(p_neues_passwort) < 4 then
+    raise exception 'Passwort muss mindestens 4 Zeichen haben';
+  end if;
+
+  update personen set passwort = p_neues_passwort where id = p_person_id;
+  return found;
+exception
+  when unique_violation then
+    raise exception 'Dieses Passwort ist schon vergeben, bitte ein anderes wählen';
+end;
+$$;
+grant execute on function reset_person_passwort(text, uuid, text) to anon;
+
+-- Einmaliger Bootstrap: die ersten beiden Master-Accounts müssen einmalig
+-- per SQL angelegt werden (Henne-Ei-Problem: add_person() setzt ja schon
+-- einen eingeloggten Master voraus). Passwörter unten ändern und danach
+-- diesen Block NICHT erneut ausführen. Alle weiteren Personen (Helfer,
+-- weitere Master) danach bequem über den Bereich "Personen verwalten"
+-- auf helfer-der-liebe.html anlegen.
+insert into personen (name, passwort, is_master) values
+  ('Selina', 'ÄNDERN-selina', true),
+  ('Nico',   'ÄNDERN-nico',   true)
+on conflict (passwort) do nothing;

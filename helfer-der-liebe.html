@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Aufgaben – Selina & Nico</title>
+<title>Helfer der Liebe – Selina & Nico</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Jost:wght@300;400&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -90,6 +90,20 @@
   .btn-delete:hover { border-color: var(--red); color: var(--red); }
   .no-action { color: var(--text-light); font-size: 0.75rem; opacity: 0.5; }
 
+  #personen-panel { margin-top: 44px; }
+  .personen-add { grid-template-columns: 1fr 1.3fr 0.8fr auto; }
+  .pw-field { display: flex; gap: 6px; }
+  .pw-field input { flex: 1; }
+  .btn-icon { background: var(--cream); border: 1px solid var(--beige-dark); color: var(--text-light); padding: 0 12px; cursor: pointer; font-size: 0.9rem; transition: all 0.2s; }
+  .btn-icon:hover { border-color: var(--sage); color: var(--sage); }
+  .role-badge { display: inline-block; padding: 3px 10px; font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 10px; }
+  .role-badge.master { background: var(--sage-pale); color: var(--sage); }
+  .role-badge.helfer { background: var(--beige-dark); color: var(--text-light); }
+  .btn-small { background: transparent; border: 1px solid var(--beige-dark); color: var(--text-light); padding: 6px 12px; font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; transition: all 0.2s; margin-right: 6px; }
+  .btn-small:hover { border-color: var(--sage); color: var(--sage); }
+  .btn-small.danger:hover { border-color: var(--red); color: var(--red); }
+  .btn-small:disabled { opacity: 0.35; cursor: not-allowed; }
+
   .loading { text-align: center; padding: 60px; color: var(--text-light); }
   .empty-state { text-align: center; padding: 60px; color: var(--text-light); }
   .last-updated { font-size: 0.72rem; color: var(--text-light); text-align: right; padding: 0 32px 20px; max-width: 1100px; margin: 0 auto; opacity: 0.7; }
@@ -110,7 +124,7 @@
 <div id="login-screen">
   <div class="login-box">
     <div class="login-title"><em>Selina & Nico</em></div>
-    <div class="login-sub">Aufgabenliste · Dein Passwort</div>
+    <div class="login-sub">Helfer der Liebe · Dein Passwort</div>
     <input type="password" id="pw-input" placeholder="Passwort eingeben"
       onkeydown="if(event.key==='Enter') login()">
     <button class="login-btn" id="login-btn" onclick="login()">Anmelden</button>
@@ -123,7 +137,7 @@
 
   <header>
     <div>
-      <div class="header-title"><em>Selina & Nico</em> · Aufgaben</div>
+      <div class="header-title"><em>Helfer der Liebe</em></div>
       <div class="header-sub">Wer macht was?</div>
     </div>
     <div class="header-btns">
@@ -192,6 +206,35 @@
 
   <div class="last-updated" id="last-updated"></div>
 
+  <div class="table-wrap" id="personen-panel" style="display:none;">
+    <div class="table-header">
+      <h2>Personen verwalten</h2>
+    </div>
+    <div class="add-form personen-add">
+      <div class="field">
+        <label for="p-name">Name</label>
+        <input type="text" id="p-name" placeholder="z.B. Julia">
+      </div>
+      <div class="field">
+        <label for="p-passwort">Passwort</label>
+        <div class="pw-field">
+          <input type="text" id="p-passwort">
+          <button type="button" class="btn-icon" title="Neues Passwort vorschlagen" onclick="document.getElementById('p-passwort').value = generatePassword()">↻</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="p-master">Rolle</label>
+        <select id="p-master">
+          <option value="false">Helfer</option>
+          <option value="true">Master</option>
+        </select>
+      </div>
+      <button class="btn-add" onclick="addPerson()">+ Person anlegen</button>
+    </div>
+    <div class="form-error" id="person-error"></div>
+    <div id="personen-table-container" style="margin-top: 20px;"></div>
+  </div>
+
 </div>
 
 <script>
@@ -255,9 +298,23 @@
     document.getElementById('app-content').style.display = 'block';
     document.getElementById('whoami').innerHTML =
       `Hallo, ${me.name}${me.is_master ? '<span class="badge">Master</span>' : ''}`;
+    if (me.is_master) {
+      document.getElementById('personen-panel').style.display = 'block';
+      document.getElementById('p-passwort').value = generatePassword();
+    } else {
+      document.getElementById('personen-panel').style.display = 'none';
+    }
     loadPersonen();
     loadAufgaben();
     autoRefresh = setInterval(loadAufgaben, 60000);
+  }
+
+  const PW_WOERTER = ['Sonne','Blume','Kranz','Feier','Traube','Kerze','Ringe','Tanz','Herz','Wiese','Feder','Perle'];
+  function generatePassword() {
+    const w1 = PW_WOERTER[Math.floor(Math.random() * PW_WOERTER.length)];
+    const w2 = PW_WOERTER[Math.floor(Math.random() * PW_WOERTER.length)];
+    const n  = Math.floor(10 + Math.random() * 90);
+    return `${w1}${n}${w2}`;
   }
 
   async function loadPersonen() {
@@ -269,7 +326,115 @@
       const sel = document.getElementById('f-zugewiesen');
       sel.innerHTML = '<option value="">– niemand –</option>' +
         personen.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+      if (me.is_master) renderPersonenAdmin();
     } catch (err) { /* Dropdown bleibt dann leer, nicht kritisch */ }
+  }
+
+  function renderPersonenAdmin() {
+    const container = document.getElementById('personen-table-container');
+    if (personen.length === 0) {
+      container.innerHTML = '<div class="empty-state">Noch keine Personen angelegt.</div>';
+      return;
+    }
+    container.innerHTML = `
+      <table>
+        <thead>
+          <tr><th>Name</th><th>Rolle</th><th></th></tr>
+        </thead>
+        <tbody>
+          ${personen.map(p => `
+            <tr>
+              <td>${escapeHtml(p.name)}</td>
+              <td><span class="role-badge ${p.is_master ? 'master' : 'helfer'}">${p.is_master ? 'Master' : 'Helfer'}</span></td>
+              <td>
+                <button class="btn-small" onclick="resetPersonPasswort('${p.id}')">Passwort zurücksetzen</button>
+                <button class="btn-small danger" ${p.id === me.id ? 'disabled title="Du kannst dich nicht selbst löschen"' : ''}
+                  onclick="deletePerson('${p.id}')">Löschen</button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  async function addPerson() {
+    const nameEl = document.getElementById('p-name');
+    const pwEl = document.getElementById('p-passwort');
+    const masterEl = document.getElementById('p-master');
+    const errEl = document.getElementById('person-error');
+    errEl.classList.remove('show');
+
+    const name = nameEl.value.trim();
+    const pw = pwEl.value.trim();
+    if (!name || !pw) {
+      errEl.textContent = 'Bitte Name und Passwort ausfüllen.';
+      errEl.classList.add('show');
+      return;
+    }
+
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/add_person`, {
+        method: 'POST',
+        headers: rpcHeaders(),
+        body: JSON.stringify({
+          p_passwort_master: me.passwort,
+          p_name: name,
+          p_neues_passwort: pw,
+          p_is_master: masterEl.value === 'true'
+        })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Fehler beim Anlegen');
+      }
+      window.prompt(`Zugangsdaten für ${name} (zum Kopieren markieren):`, `Name: ${name}  ·  Passwort: ${pw}`);
+      nameEl.value = '';
+      masterEl.value = 'false';
+      pwEl.value = generatePassword();
+      loadPersonen();
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.classList.add('show');
+    }
+  }
+
+  async function deletePerson(id) {
+    const name = (personen.find(p => p.id === id) || {}).name || 'diese Person';
+    if (!confirm(`${name} wirklich löschen? Alle von dieser Person angelegten Aufgaben werden mitgelöscht.`)) return;
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/delete_person`, {
+        method: 'POST',
+        headers: rpcHeaders(),
+        body: JSON.stringify({ p_passwort_master: me.passwort, p_person_id: id })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Fehler beim Löschen');
+      }
+      loadPersonen();
+      loadAufgaben();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  async function resetPersonPasswort(id) {
+    const name = (personen.find(p => p.id === id) || {}).name || 'diese Person';
+    const neuesPasswort = generatePassword();
+    if (!confirm(`Neues Passwort für ${name} setzen?`)) return;
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/reset_person_passwort`, {
+        method: 'POST',
+        headers: rpcHeaders(),
+        body: JSON.stringify({ p_passwort_master: me.passwort, p_person_id: id, p_neues_passwort: neuesPasswort })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Fehler beim Zurücksetzen');
+      }
+      window.prompt(`Neues Passwort für ${name} (zum Kopieren markieren):`, neuesPasswort);
+    } catch (err) {
+      alert(err.message);
+    }
   }
 
   async function loadAufgaben() {

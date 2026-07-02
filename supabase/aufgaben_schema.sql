@@ -261,6 +261,6 @@ grant execute on function reset_person_passwort(text, uuid, text) to anon;
 -- weitere Master) danach bequem über den Bereich "Personen verwalten"
 -- auf helfer-der-liebe.html anlegen.
 insert into personen (name, passwort, is_master) values
-  ('Selina', 'ÄNDERN-selina', true),
-  ('Nico',   'ÄNDERN-nico',   true)
+  ('Selina', 'Blume42Kranz', true),
+  ('Nico',   'Feier17Tanz',  true)
 on conflict (passwort) do nothing;

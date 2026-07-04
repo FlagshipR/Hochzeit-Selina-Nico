@@ -211,10 +211,11 @@
   </div>
 
   <div class="add-entry-bar">
-    <button class="btn-add-entry" onclick="toggleAddForm()">+ Manuell eintragen</button>
+    <button class="btn-add-entry" onclick="openAddForm()">+ Manuell eintragen</button>
   </div>
   <div class="add-entry-form" id="add-entry-form">
     <div class="add-entry-card">
+      <h3 id="add-entry-heading" style="font-family:'Cormorant Garamond',serif; font-weight:300; font-size:1.3rem;">Neuer Eintrag</h3>
       <div class="form-row">
         <input type="text" id="add-vorname" placeholder="Vorname">
         <input type="text" id="add-nachname" placeholder="Nachname">
@@ -225,17 +226,18 @@
           <option value="🤔 Vielleicht">🤔 Vielleicht</option>
           <option value="❌ Leider nicht">❌ Absage</option>
         </select>
-        <select id="add-personen">
-          <option value="1 Person">1 Person</option>
-          <option value="2 Personen">2 Personen</option>
-          <option value="3 Personen">3 Personen</option>
-          <option value="4+ Personen">4+ Personen</option>
-        </select>
+        <input type="text" id="add-personen" placeholder="Personenanzahl" list="personen-optionen">
+        <datalist id="personen-optionen">
+          <option value="1 Person">
+          <option value="2 Personen">
+          <option value="3 Personen">
+          <option value="4+ Personen">
+        </datalist>
       </div>
       <textarea id="add-anmerkungen" placeholder="Kommentar / Anmerkungen"></textarea>
       <div class="add-entry-actions">
-        <button class="btn-save" id="add-entry-submit-btn" onclick="submitAddEntry()">Eintragen</button>
-        <button class="btn-cancel" onclick="toggleAddForm()">Abbrechen</button>
+        <button class="btn-save" id="add-entry-submit-btn" onclick="submitEntryForm()">Eintragen</button>
+        <button class="btn-cancel" onclick="closeEntryForm()">Abbrechen</button>
         <span class="add-entry-error" id="add-entry-error"></span>
       </div>
     </div>
@@ -249,6 +251,8 @@
         <button class="filter-btn"              onclick="setFilter('ja', this)">Zusagen</button>
         <button class="filter-btn"              onclick="setFilter('nein', this)">Absagen</button>
         <button class="filter-btn vielleicht-btn" onclick="setFilter('vielleicht', this)">🤔 Vielleicht</button>
+        <button class="filter-btn"              onclick="setFilter('manuell', this)">✍️ Manuell</button>
+        <button class="filter-btn"              onclick="setFilter('gast', this)">💌 Gast</button>
         <button class="filter-btn familie-btn"  onclick="setFilter('familie', this)">👨‍👩‍👧 Familie</button>
         <button class="filter-btn freunde-btn"  onclick="setFilter('freunde', this)">🎉 Freunde</button>
         <button class="filter-btn duplikat-btn" onclick="setFilter('duplikate', this)">⚠️ Duplikate</button>
@@ -393,6 +397,8 @@
     if (currentFilter === 'ja')        data = data.filter(r => r.zusage && r.zusage.includes('Ja'));
     if (currentFilter === 'nein')      data = data.filter(r => r.zusage && r.zusage.includes('nicht'));
     if (currentFilter === 'vielleicht') data = data.filter(r => r.zusage && r.zusage.includes('Vielleicht'));
+    if (currentFilter === 'manuell')   data = data.filter(r => r.eintragungsart === 'manuell eingetragen');
+    if (currentFilter === 'gast')      data = data.filter(r => r.eintragungsart !== 'manuell eingetragen');
     if (currentFilter === 'familie')   data = data.filter(r => r.kategorie === 'Familie');
     if (currentFilter === 'freunde')   data = data.filter(r => !r.kategorie || r.kategorie !== 'Familie');
     if (currentFilter === 'duplikate') data = data.filter(r => duplicateIds.has(r.id));
@@ -443,7 +449,10 @@
         <td>${r.email?`<a href="mailto:${r.email}" style="color:var(--sage);text-decoration:none;">${r.email}</a>`:'<span style="opacity:0.4">–</span>'}</td>
         <td>${r.anmerkungen||'<span style="opacity:0.4">–</span>'}</td>
         <td class="date-cell">${dateStr}</td>
-        <td><button class="delete-btn" onclick="deleteEntry('${r.id}')" title="Eintrag löschen">🗑</button></td>
+        <td style="white-space:nowrap">
+          <button class="delete-btn" onclick="openEditForm('${r.id}')" title="Eintrag bearbeiten">✏️</button>
+          <button class="delete-btn" onclick="deleteEntry('${r.id}')" title="Eintrag löschen">🗑</button>
+        </td>
       </tr>`;
     }
 
@@ -477,7 +486,10 @@
           <td>${latest.email?`<a href="mailto:${latest.email}" style="color:var(--sage);text-decoration:none;">${latest.email}</a>`:'<span style="opacity:0.4">–</span>'}</td>
           <td>${latest.anmerkungen||'<span style="opacity:0.4">–</span>'}</td>
           <td class="date-cell">${dateStr}</td>
-          <td><button class="delete-btn" onclick="deleteEntry('${latest.id}')" title="Eintrag löschen">🗑</button></td>
+          <td style="white-space:nowrap">
+            <button class="delete-btn" onclick="openEditForm('${latest.id}')" title="Eintrag bearbeiten">✏️</button>
+            <button class="delete-btn" onclick="deleteEntry('${latest.id}')" title="Eintrag löschen">🗑</button>
+          </td>
         </tr>`;
 
         // Alte Zeilen — eingeklappt per default
@@ -496,7 +508,10 @@
             <td>${r.email?`<a href="mailto:${r.email}" style="color:var(--sage);text-decoration:none;">${r.email}</a>`:'<span style="opacity:0.4">–</span>'}</td>
             <td>${r.anmerkungen||'<span style="opacity:0.4">–</span>'}</td>
             <td class="date-cell">${ds}</td>
-            <td><button class="delete-btn" onclick="deleteEntry('${r.id}')" title="Eintrag löschen">🗑</button></td>
+            <td style="white-space:nowrap">
+              <button class="delete-btn" onclick="openEditForm('${r.id}')" title="Eintrag bearbeiten">✏️</button>
+              <button class="delete-btn" onclick="deleteEntry('${r.id}')" title="Eintrag löschen">🗑</button>
+            </td>
           </tr>`;
         }).join('');
 
@@ -544,19 +559,59 @@
     }
   }
 
-  function toggleAddForm() {
-    document.getElementById('add-entry-form').classList.toggle('open');
-    document.getElementById('add-entry-error').textContent = '';
+  let editingId = null;
+
+  function matchZusageOption(val) {
+    val = val || '';
+    if (val.includes('Ja'))        return '✅ Ja, wir kommen!';
+    if (val.includes('Vielleicht')) return '🤔 Vielleicht';
+    if (val.includes('nicht'))     return '❌ Leider nicht';
+    return '✅ Ja, wir kommen!';
   }
 
-  async function submitAddEntry() {
+  function openAddForm() {
+    editingId = null;
+    document.getElementById('add-entry-heading').textContent = 'Neuer Eintrag';
+    document.getElementById('add-entry-submit-btn').textContent = 'Eintragen';
+    document.getElementById('add-vorname').value = '';
+    document.getElementById('add-nachname').value = '';
+    document.getElementById('add-zusage').value = '✅ Ja, wir kommen!';
+    document.getElementById('add-personen').value = '1 Person';
+    document.getElementById('add-anmerkungen').value = '';
+    document.getElementById('add-entry-error').textContent = '';
+    document.getElementById('add-entry-form').classList.add('open');
+  }
+
+  function openEditForm(id) {
+    const r = allData.find(x => String(x.id) === String(id));
+    if (!r) return;
+    editingId = id;
+    document.getElementById('add-entry-heading').textContent = 'Eintrag bearbeiten';
+    document.getElementById('add-entry-submit-btn').textContent = 'Speichern';
+    document.getElementById('add-vorname').value = r.vorname || '';
+    document.getElementById('add-nachname').value = r.nachname || '';
+    document.getElementById('add-zusage').value = matchZusageOption(r.zusage);
+    document.getElementById('add-personen').value = r.personen || '';
+    document.getElementById('add-anmerkungen').value = r.anmerkungen || '';
+    document.getElementById('add-entry-error').textContent = '';
+    document.getElementById('add-entry-form').classList.add('open');
+    document.getElementById('add-entry-form').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function closeEntryForm() {
+    document.getElementById('add-entry-form').classList.remove('open');
+    editingId = null;
+  }
+
+  async function submitEntryForm() {
+    const isEdit      = !!editingId;
     const vorname     = document.getElementById('add-vorname').value.trim();
-    const nachname     = document.getElementById('add-nachname').value.trim();
-    const zusage       = document.getElementById('add-zusage').value;
-    const personen     = document.getElementById('add-personen').value;
-    const anmerkungen  = document.getElementById('add-anmerkungen').value.trim() || null;
-    const errEl        = document.getElementById('add-entry-error');
-    errEl.textContent  = '';
+    const nachname    = document.getElementById('add-nachname').value.trim();
+    const zusage      = document.getElementById('add-zusage').value;
+    const personen    = document.getElementById('add-personen').value.trim();
+    const anmerkungen = document.getElementById('add-anmerkungen').value.trim() || null;
+    const errEl       = document.getElementById('add-entry-error');
+    errEl.textContent = '';
 
     if (!vorname || !nachname) {
       errEl.textContent = 'Bitte Vor- und Nachname angeben.';
@@ -568,30 +623,31 @@
     btn.textContent = 'Speichert …';
 
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/rsvp`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Prefer': 'return=minimal'
-        },
-        body: JSON.stringify({ vorname, nachname, zusage, personen, anmerkungen, eintragungsart: 'manuell eingetragen' })
-      });
+      const payload = { vorname, nachname, zusage, personen, anmerkungen };
+      if (!isEdit) payload.eintragungsart = 'manuell eingetragen';
+
+      const res = await fetch(
+        isEdit ? `${SUPABASE_URL}/rest/v1/rsvp?id=eq.${editingId}` : `${SUPABASE_URL}/rest/v1/rsvp`,
+        {
+          method: isEdit ? 'PATCH' : 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Prefer': isEdit ? 'return=minimum' : 'return=minimal'
+          },
+          body: JSON.stringify(payload)
+        }
+      );
       if (!res.ok) throw new Error('HTTP ' + res.status);
 
-      document.getElementById('add-vorname').value = '';
-      document.getElementById('add-nachname').value = '';
-      document.getElementById('add-anmerkungen').value = '';
-      document.getElementById('add-zusage').value = '✅ Ja, wir kommen!';
-      document.getElementById('add-personen').value = '1 Person';
-      toggleAddForm();
+      closeEntryForm();
       await loadRSVP();
     } catch(err) {
       errEl.textContent = 'Fehler beim Speichern: ' + err.message;
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Eintragen';
+      btn.textContent = isEdit ? 'Speichern' : 'Eintragen';
     }
   }
 

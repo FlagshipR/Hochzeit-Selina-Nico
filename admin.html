@@ -10,7 +10,7 @@
     --sage: #7a8c6e; --sage-light: #a8b89a; --sage-pale: #d6e0cc;
     --beige: #f2ead8; --beige-dark: #e0d4b8; --cream: #faf7f0;
     --brown-light: #9c7e63; --text: #3a3228; --text-light: #6b5f52;
-    --green: #4a7c59; --red: #a05252; --orange: #c47d2e;
+    --green: #4a7c59; --red: #a05252; --orange: #c47d2e; --gold: #a68b3c;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: var(--cream); font-family: 'Jost', sans-serif; color: var(--text); min-height: 100vh; }
@@ -48,6 +48,8 @@
   .stat-card.gesamt   { border-top-color: var(--sage); }
   .stat-card.zusagen  { border-top-color: var(--green); }
   .stat-card.absagen  { border-top-color: var(--red); }
+  .stat-card.vielleicht { border-top-color: var(--gold); cursor: pointer; transition: transform 0.15s; }
+  .stat-card.vielleicht:hover { transform: translateY(-2px); }
   .stat-card.personen { border-top-color: var(--brown-light); }
   .stat-card.familie  { border-top-color: #5a7a8c; cursor: pointer; transition: transform 0.15s; }
   .stat-card.familie:hover { transform: translateY(-2px); }
@@ -59,6 +61,24 @@
   .stat-card.duplikate .stat-number { color: var(--orange); }
   .stat-label { font-size: 0.68rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-light); margin-top: 6px; }
 
+  /* MANUELLER EINTRAG */
+  .add-entry-bar { max-width: 1100px; margin: 0 auto; padding: 0 32px 16px; }
+  .btn-add-entry { background: var(--sage); color: white; border: none; padding: 10px 20px; font-family: 'Jost', sans-serif; font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase; cursor: pointer; transition: background 0.2s; }
+  .btn-add-entry:hover { background: var(--sage-light); }
+  .add-entry-form { max-width: 1100px; margin: 0 auto; padding: 0 32px 28px; display: none; }
+  .add-entry-form.open { display: block; }
+  .add-entry-card { background: var(--beige); padding: 24px; display: flex; flex-direction: column; gap: 12px; max-width: 560px; }
+  .add-entry-card .form-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .add-entry-card input, .add-entry-card select, .add-entry-card textarea { flex: 1; min-width: 160px; background: var(--cream); border: 1px solid var(--beige-dark); padding: 10px 14px; font-family: 'Jost', sans-serif; font-size: 0.9rem; color: var(--text); outline: none; }
+  .add-entry-card textarea { min-height: 70px; resize: vertical; }
+  .add-entry-actions { display: flex; align-items: center; gap: 10px; }
+  .add-entry-actions button { padding: 10px 20px; font-family: 'Jost', sans-serif; font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase; cursor: pointer; border: none; }
+  .btn-save   { background: var(--sage); color: white; }
+  .btn-save:hover { background: var(--sage-light); }
+  .btn-cancel { background: transparent; border: 1px solid var(--beige-dark) !important; color: var(--text-light); }
+  .btn-cancel:hover { border-color: var(--sage) !important; color: var(--sage); }
+  .add-entry-error { color: var(--red); font-size: 0.8rem; }
+
   /* TABLE */
   .table-wrap { max-width: 1100px; margin: 0 auto 60px; padding: 0 32px; }
   .table-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
@@ -67,6 +87,7 @@
   .filter-btn { padding: 6px 14px; font-family: 'Jost', sans-serif; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; border: 1px solid var(--beige-dark); background: var(--cream); color: var(--text-light); cursor: pointer; transition: all 0.2s; }
   .filter-btn.active, .filter-btn:hover { background: var(--sage); color: white; border-color: var(--sage); }
   .filter-btn.duplikat-btn.active, .filter-btn.duplikat-btn:hover { background: var(--orange); border-color: var(--orange); }
+  .filter-btn.vielleicht-btn.active, .filter-btn.vielleicht-btn:hover { background: var(--gold); border-color: var(--gold); }
 
   table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
   thead tr { background: var(--beige-dark); }
@@ -90,9 +111,20 @@
   .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 0.78rem; }
   .badge-ja   { background: #e8f4ec; color: var(--green); }
   .badge-nein { background: #f4e8e8; color: var(--red); }
+  .badge-vielleicht { background: #f6f0dd; color: var(--gold); }
   .badge-dup  { background: #fdebd6; color: var(--orange); font-size: 0.7rem; margin-left: 6px; }
   .badge-familie { background: #e0ecf4; color: #4a6e80; font-size: 0.72rem; }
   .badge-freunde { background: #f0ece8; color: var(--brown-light); font-size: 0.72rem; }
+  .badge-manuell { background: #ece2f2; color: #6b4c8c; font-size: 0.72rem; }
+  .badge-gast    { background: #eef0e8; color: var(--text-light); font-size: 0.72rem; }
+
+  .delete-btn { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--beige-dark); background: transparent; color: var(--text-light); cursor: pointer; font-size: 0.8rem; transition: background 0.15s, color 0.15s, border-color 0.15s; }
+  .delete-btn:hover { background: #f4e8e8; border-color: var(--red); color: var(--red); }
+
+  .zusage-select { border: none; border-radius: 20px; padding: 4px 10px; font-family: 'Jost', sans-serif; font-size: 0.78rem; cursor: pointer; outline: none; }
+  .zusage-select.zusage-ja        { background: #e8f4ec; color: var(--green); }
+  .zusage-select.zusage-nein      { background: #f4e8e8; color: var(--red); }
+  .zusage-select.zusage-vielleicht { background: #f6f0dd; color: var(--gold); }
 
   .date-cell { font-size: 0.8rem; color: var(--text-light); white-space: nowrap; }
   .empty-state { text-align: center; padding: 60px 20px; color: var(--text-light); }
@@ -156,6 +188,10 @@
       <div class="stat-number" id="stat-absagen">–</div>
       <div class="stat-label">Absagen</div>
     </div>
+    <div class="stat-card vielleicht" onclick="setFilter('vielleicht', document.querySelector('.vielleicht-btn'))">
+      <div class="stat-number" id="stat-vielleicht">–</div>
+      <div class="stat-label">🤔 Vielleicht</div>
+    </div>
     <div class="stat-card personen">
       <div class="stat-number" id="stat-personen">–</div>
       <div class="stat-label">Personen erwartet</div>
@@ -174,6 +210,37 @@
     </div>
   </div>
 
+  <div class="add-entry-bar">
+    <button class="btn-add-entry" onclick="toggleAddForm()">+ Manuell eintragen</button>
+  </div>
+  <div class="add-entry-form" id="add-entry-form">
+    <div class="add-entry-card">
+      <div class="form-row">
+        <input type="text" id="add-vorname" placeholder="Vorname">
+        <input type="text" id="add-nachname" placeholder="Nachname">
+      </div>
+      <div class="form-row">
+        <select id="add-zusage">
+          <option value="✅ Ja, wir kommen!">✅ Zusage</option>
+          <option value="🤔 Vielleicht">🤔 Vielleicht</option>
+          <option value="❌ Leider nicht">❌ Absage</option>
+        </select>
+        <select id="add-personen">
+          <option value="1 Person">1 Person</option>
+          <option value="2 Personen">2 Personen</option>
+          <option value="3 Personen">3 Personen</option>
+          <option value="4+ Personen">4+ Personen</option>
+        </select>
+      </div>
+      <textarea id="add-anmerkungen" placeholder="Kommentar / Anmerkungen"></textarea>
+      <div class="add-entry-actions">
+        <button class="btn-save" id="add-entry-submit-btn" onclick="submitAddEntry()">Eintragen</button>
+        <button class="btn-cancel" onclick="toggleAddForm()">Abbrechen</button>
+        <span class="add-entry-error" id="add-entry-error"></span>
+      </div>
+    </div>
+  </div>
+
   <div class="table-wrap">
     <div class="table-header">
       <h2>Alle Rückmeldungen</h2>
@@ -181,6 +248,7 @@
         <button class="filter-btn active"       onclick="setFilter('alle', this)">Alle</button>
         <button class="filter-btn"              onclick="setFilter('ja', this)">Zusagen</button>
         <button class="filter-btn"              onclick="setFilter('nein', this)">Absagen</button>
+        <button class="filter-btn vielleicht-btn" onclick="setFilter('vielleicht', this)">🤔 Vielleicht</button>
         <button class="filter-btn familie-btn"  onclick="setFilter('familie', this)">👨‍👩‍👧 Familie</button>
         <button class="filter-btn freunde-btn"  onclick="setFilter('freunde', this)">🎉 Freunde</button>
         <button class="filter-btn duplikat-btn" onclick="setFilter('duplikate', this)">⚠️ Duplikate</button>
@@ -277,8 +345,9 @@
   }
 
   function updateStats() {
-    const zusagen = allData.filter(r => r.zusage && r.zusage.includes('Ja'));
-    const absagen = allData.filter(r => r.zusage && r.zusage.includes('nicht'));
+    const zusagen    = allData.filter(r => r.zusage && r.zusage.includes('Ja'));
+    const absagen    = allData.filter(r => r.zusage && r.zusage.includes('nicht'));
+    const vielleicht = allData.filter(r => r.zusage && r.zusage.includes('Vielleicht'));
 
     // Für Personenzählung: bei Duplikaten nur den neuesten Eintrag (Ja) pro Person werten.
     // allData ist bereits nach created_at desc sortiert, d.h. der erste Treffer ist der neueste.
@@ -305,6 +374,7 @@
     document.getElementById('stat-gesamt').textContent    = allData.length;
     document.getElementById('stat-zusagen').textContent   = zusagen.length;
     document.getElementById('stat-absagen').textContent   = absagen.length;
+    document.getElementById('stat-vielleicht').textContent = vielleicht.length;
     document.getElementById('stat-personen').textContent  = personen;
     document.getElementById('stat-familie').textContent   = familie.length;
     document.getElementById('stat-freunde').textContent   = freunde.length;
@@ -322,6 +392,7 @@
     let data = [...allData];
     if (currentFilter === 'ja')        data = data.filter(r => r.zusage && r.zusage.includes('Ja'));
     if (currentFilter === 'nein')      data = data.filter(r => r.zusage && r.zusage.includes('nicht'));
+    if (currentFilter === 'vielleicht') data = data.filter(r => r.zusage && r.zusage.includes('Vielleicht'));
     if (currentFilter === 'familie')   data = data.filter(r => r.kategorie === 'Familie');
     if (currentFilter === 'freunde')   data = data.filter(r => !r.kategorie || r.kategorie !== 'Familie');
     if (currentFilter === 'duplikate') data = data.filter(r => duplicateIds.has(r.id));
@@ -336,29 +407,43 @@
       return;
     }
 
+    function zusageSelect(r) {
+      const val = r.zusage || '';
+      const cur = val.includes('Ja') ? 'ja' : val.includes('Vielleicht') ? 'vielleicht' : val.includes('nicht') ? 'nein' : '';
+      return `<select class="zusage-select zusage-${cur}" onchange="updateZusage('${r.id}', this.value)">
+        <option value="✅ Ja, wir kommen!" ${cur==='ja'?'selected':''}>✅ Zusage</option>
+        <option value="🤔 Vielleicht" ${cur==='vielleicht'?'selected':''}>🤔 Vielleicht</option>
+        <option value="❌ Leider nicht" ${cur==='nein'?'selected':''}>❌ Absage</option>
+      </select>`;
+    }
+
     function makeRow(r, extraClass) {
       const date    = new Date(r.created_at);
       const dateStr = date.toLocaleDateString('de-DE')+'<br><span style="opacity:0.6">'+date.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr</span>';
-      const isJa    = r.zusage && r.zusage.includes('Ja');
       const isDup   = duplicateIds.has(r.id);
       const isLatest = latestDupIds.has(r.id);
       const isOld   = isDup && !isLatest;
-      const badge   = isJa ? `<span class="badge badge-ja">✅ Zusage</span>` : `<span class="badge badge-nein">❌ Absage</span>`;
+      const badge   = zusageSelect(r);
       const dupBadge = isLatest ? `<span class="badge badge-dup">⚠️ Duplikat</span>`
                      : isOld    ? `<span class="badge-dup-old">⚠️ Veraltet</span>`
                      : '';
       const katBadge = r.kategorie === 'Familie'
         ? `<span class="badge badge-familie">👨‍👩‍👧 Familie</span>`
         : `<span class="badge badge-freunde">🎉 Freunde</span>`;
+      const artBadge = r.eintragungsart === 'manuell eingetragen'
+        ? `<span class="badge badge-manuell">✍️ Manuell</span>`
+        : `<span class="badge badge-gast">💌 Gast</span>`;
       const rowClass = (isLatest ? 'is-duplicate-latest' : isOld ? 'is-duplicate-old' : '') + (extraClass ? ' '+extraClass : '');
       return `<tr class="${rowClass}">
         <td><strong>${r.vorname||'–'} ${r.nachname||''}</strong>${dupBadge}</td>
         <td>${badge}</td>
         <td>${katBadge}</td>
+        <td>${artBadge}</td>
         <td>${r.personen||'–'}</td>
         <td>${r.email?`<a href="mailto:${r.email}" style="color:var(--sage);text-decoration:none;">${r.email}</a>`:'<span style="opacity:0.4">–</span>'}</td>
         <td>${r.anmerkungen||'<span style="opacity:0.4">–</span>'}</td>
         <td class="date-cell">${dateStr}</td>
+        <td><button class="delete-btn" onclick="deleteEntry('${r.id}')" title="Eintrag löschen">🗑</button></td>
       </tr>`;
     }
 
@@ -379,31 +464,39 @@
         // Neueste Zeile mit Toggle-Button
         const date    = new Date(latest.created_at);
         const dateStr = date.toLocaleDateString('de-DE')+'<br><span style="opacity:0.6">'+date.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr</span>';
-        const isJa    = latest.zusage && latest.zusage.includes('Ja');
-        const badge   = isJa ? `<span class="badge badge-ja">✅ Zusage</span>` : `<span class="badge badge-nein">❌ Absage</span>`;
+        const badge   = zusageSelect(latest);
+        const artBadge = latest.eintragungsart === 'manuell eingetragen'
+          ? `<span class="badge badge-manuell">✍️ Manuell</span>`
+          : `<span class="badge badge-gast">💌 Gast</span>`;
         const toggleBtn = `<button class="toggle-btn" onclick="toggleGroup('${groupId}', this)" title="${count} ältere Einträge">▼</button>`;
         const latestRow = `<tr class="is-duplicate-latest${separator?' '+separator:''}">
           <td><strong>${latest.vorname||'–'} ${latest.nachname||''}</strong><span class="badge badge-dup">⚠️ Duplikat</span>${toggleBtn}</td>
           <td>${badge}</td>
+          <td>${artBadge}</td>
           <td>${latest.personen||'–'}</td>
           <td>${latest.email?`<a href="mailto:${latest.email}" style="color:var(--sage);text-decoration:none;">${latest.email}</a>`:'<span style="opacity:0.4">–</span>'}</td>
           <td>${latest.anmerkungen||'<span style="opacity:0.4">–</span>'}</td>
           <td class="date-cell">${dateStr}</td>
+          <td><button class="delete-btn" onclick="deleteEntry('${latest.id}')" title="Eintrag löschen">🗑</button></td>
         </tr>`;
 
         // Alte Zeilen — eingeklappt per default
         const oldRows = oldEntries.map(r => {
           const d    = new Date(r.created_at);
           const ds   = d.toLocaleDateString('de-DE')+'<br><span style="opacity:0.6">'+d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr</span>';
-          const ja   = r.zusage && r.zusage.includes('Ja');
-          const bdg  = ja ? `<span class="badge badge-ja">✅ Zusage</span>` : `<span class="badge badge-nein">❌ Absage</span>`;
+          const bdg  = zusageSelect(r);
+          const artBdg = r.eintragungsart === 'manuell eingetragen'
+            ? `<span class="badge badge-manuell">✍️ Manuell</span>`
+            : `<span class="badge badge-gast">💌 Gast</span>`;
           return `<tr class="is-duplicate-old collapsed" data-group="${groupId}">
             <td style="padding-left:36px"><strong>${r.vorname||'–'} ${r.nachname||''}</strong><span class="badge-dup-old">⚠️ Veraltet</span></td>
             <td>${bdg}</td>
+            <td>${artBdg}</td>
             <td>${r.personen||'–'}</td>
             <td>${r.email?`<a href="mailto:${r.email}" style="color:var(--sage);text-decoration:none;">${r.email}</a>`:'<span style="opacity:0.4">–</span>'}</td>
             <td>${r.anmerkungen||'<span style="opacity:0.4">–</span>'}</td>
             <td class="date-cell">${ds}</td>
+            <td><button class="delete-btn" onclick="deleteEntry('${r.id}')" title="Eintrag löschen">🗑</button></td>
           </tr>`;
         }).join('');
 
@@ -419,11 +512,107 @@
           <th onclick="sortBy('nachname')">Name ${sortCol==='nachname'?(sortAsc?'↑':'↓'):''}</th>
           <th onclick="sortBy('zusage')">Antwort ${sortCol==='zusage'?(sortAsc?'↑':'↓'):''}</th>
           <th onclick="sortBy('kategorie')">Gruppe ${sortCol==='kategorie'?(sortAsc?'↑':'↓'):''}</th>
+          <th onclick="sortBy('eintragungsart')">Eintragungsart ${sortCol==='eintragungsart'?(sortAsc?'↑':'↓'):''}</th>
           <th>Personen</th><th>E-Mail</th><th>Anmerkungen</th>
           <th onclick="sortBy('created_at')">Datum ${sortCol==='created_at'?(sortAsc?'↑':'↓'):''}</th>
+          <th></th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
+  }
+
+  async function updateZusage(id, value) {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rsvp?id=eq.${id}`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimum'
+        },
+        body: JSON.stringify({ zusage: value })
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const entry = allData.find(r => String(r.id) === String(id));
+      if (entry) entry.zusage = value;
+      findDuplicates();
+      updateStats();
+      renderTable();
+    } catch(err) {
+      alert('Fehler beim Speichern: ' + err.message);
+    }
+  }
+
+  function toggleAddForm() {
+    document.getElementById('add-entry-form').classList.toggle('open');
+    document.getElementById('add-entry-error').textContent = '';
+  }
+
+  async function submitAddEntry() {
+    const vorname     = document.getElementById('add-vorname').value.trim();
+    const nachname     = document.getElementById('add-nachname').value.trim();
+    const zusage       = document.getElementById('add-zusage').value;
+    const personen     = document.getElementById('add-personen').value;
+    const anmerkungen  = document.getElementById('add-anmerkungen').value.trim() || null;
+    const errEl        = document.getElementById('add-entry-error');
+    errEl.textContent  = '';
+
+    if (!vorname || !nachname) {
+      errEl.textContent = 'Bitte Vor- und Nachname angeben.';
+      return;
+    }
+
+    const btn = document.getElementById('add-entry-submit-btn');
+    btn.disabled = true;
+    btn.textContent = 'Speichert …';
+
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rsvp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({ vorname, nachname, zusage, personen, anmerkungen, eintragungsart: 'manuell eingetragen' })
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+
+      document.getElementById('add-vorname').value = '';
+      document.getElementById('add-nachname').value = '';
+      document.getElementById('add-anmerkungen').value = '';
+      document.getElementById('add-zusage').value = '✅ Ja, wir kommen!';
+      document.getElementById('add-personen').value = '1 Person';
+      toggleAddForm();
+      await loadRSVP();
+    } catch(err) {
+      errEl.textContent = 'Fehler beim Speichern: ' + err.message;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Eintragen';
+    }
+  }
+
+  async function deleteEntry(id) {
+    const entry = allData.find(r => String(r.id) === String(id));
+    const label = entry ? `${entry.vorname||''} ${entry.nachname||''}`.trim() : 'diesen Eintrag';
+    if (!confirm(`Eintrag von ${label} wirklich unwiderruflich löschen?`)) return;
+
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rsvp?id=eq.${id}`, {
+        method: 'DELETE',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      allData = allData.filter(r => String(r.id) !== String(id));
+      findDuplicates();
+      updateStats();
+      renderTable();
+    } catch(err) {
+      alert('Fehler beim Löschen: ' + err.message);
+    }
   }
 
   function toggleGroup(groupId, btn) {

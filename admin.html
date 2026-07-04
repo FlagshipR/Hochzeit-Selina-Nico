@@ -51,6 +51,7 @@
   .stat-card.vielleicht { border-top-color: var(--gold); cursor: pointer; transition: transform 0.15s; }
   .stat-card.vielleicht:hover { transform: translateY(-2px); }
   .stat-card.personen { border-top-color: var(--brown-light); }
+  .stat-card.personen-vielleicht { border-top-color: var(--gold); }
   .stat-card.familie  { border-top-color: #5a7a8c; cursor: pointer; transition: transform 0.15s; }
   .stat-card.familie:hover { transform: translateY(-2px); }
   .stat-card.freunde  { border-top-color: #9c7e63; cursor: pointer; transition: transform 0.15s; }
@@ -125,6 +126,8 @@
   .zusage-select.zusage-ja        { background: #e8f4ec; color: var(--green); }
   .zusage-select.zusage-nein      { background: #f4e8e8; color: var(--red); }
   .zusage-select.zusage-vielleicht { background: #f6f0dd; color: var(--gold); }
+  .zusage-select.art-select-manuell { background: #ece2f2; color: #6b4c8c; }
+  .zusage-select.art-select-gast    { background: #eef0e8; color: var(--text-light); }
 
   .date-cell { font-size: 0.8rem; color: var(--text-light); white-space: nowrap; }
   .empty-state { text-align: center; padding: 60px 20px; color: var(--text-light); }
@@ -195,6 +198,10 @@
     <div class="stat-card personen">
       <div class="stat-number" id="stat-personen">–</div>
       <div class="stat-label">Personen erwartet</div>
+    </div>
+    <div class="stat-card personen-vielleicht">
+      <div class="stat-number" id="stat-personen-vielleicht">–</div>
+      <div class="stat-label">🤔 Personen zusätzlich möglich</div>
     </div>
     <div class="stat-card familie" onclick="setFilter('familie', document.querySelector('.familie-btn'))">
       <div class="stat-number" id="stat-familie">–</div>
@@ -353,23 +360,31 @@
     const absagen    = allData.filter(r => r.zusage && r.zusage.includes('nicht'));
     const vielleicht = allData.filter(r => r.zusage && r.zusage.includes('Vielleicht'));
 
-    // Für Personenzählung: bei Duplikaten nur den neuesten Eintrag (Ja) pro Person werten.
+    // Für Personenzählung: bei Duplikaten nur den neuesten Eintrag pro Person werten.
     // allData ist bereits nach created_at desc sortiert, d.h. der erste Treffer ist der neueste.
+    // Ja und Vielleicht werden getrennt gezählt, damit "Personen erwartet" nur sichere Zusagen zeigt.
     const seenName = new Set(), seenEmail = new Set();
-    let personen = 0;
+    const seenNameV = new Set(), seenEmailV = new Set();
+    let personen = 0, personenVielleicht = 0;
     allData.forEach(r => {
-      if (!r.zusage || !r.zusage.includes('Ja')) return;
+      if (!r.zusage) return;
       const nk = ((r.vorname||'')+'|'+(r.nachname||'')).toLowerCase().trim();
       const ek = (r.email||'').toLowerCase().trim();
       const isDup = duplicateIds.has(r.id);
-      if (isDup) {
-        // Überspringe, wenn wir diesen Namen oder diese E-Mail schon gezählt haben
-        if ((nk !== '|' && seenName.has(nk)) || (ek && seenEmail.has(ek))) return;
-      }
-      if (nk !== '|') seenName.add(nk);
-      if (ek)         seenEmail.add(ek);
       const p = parseInt(r.personen);
-      personen += !isNaN(p) ? p : (r.personen && r.personen.includes('4') ? 4 : 1);
+      const count = !isNaN(p) ? p : (r.personen && r.personen.includes('4') ? 4 : 1);
+
+      if (r.zusage.includes('Ja')) {
+        if (isDup && ((nk !== '|' && seenName.has(nk)) || (ek && seenEmail.has(ek)))) return;
+        if (nk !== '|') seenName.add(nk);
+        if (ek)         seenEmail.add(ek);
+        personen += count;
+      } else if (r.zusage.includes('Vielleicht')) {
+        if (isDup && ((nk !== '|' && seenNameV.has(nk)) || (ek && seenEmailV.has(ek)))) return;
+        if (nk !== '|') seenNameV.add(nk);
+        if (ek)         seenEmailV.add(ek);
+        personenVielleicht += count;
+      }
     });
 
     const familie = allData.filter(r => r.kategorie === 'Familie');
@@ -380,6 +395,7 @@
     document.getElementById('stat-absagen').textContent   = absagen.length;
     document.getElementById('stat-vielleicht').textContent = vielleicht.length;
     document.getElementById('stat-personen').textContent  = personen;
+    document.getElementById('stat-personen-vielleicht').textContent = personenVielleicht;
     document.getElementById('stat-familie').textContent   = familie.length;
     document.getElementById('stat-freunde').textContent   = freunde.length;
     document.getElementById('stat-duplikate').textContent = duplicateIds.size;
@@ -423,6 +439,14 @@
       </select>`;
     }
 
+    function artSelect(r) {
+      const cur = r.eintragungsart === 'manuell eingetragen' ? 'manuell' : 'gast';
+      return `<select class="zusage-select art-select-${cur}" onchange="updateEintragungsart('${r.id}', this.value)">
+        <option value="durch Gäste eingetragen" ${cur==='gast'?'selected':''}>💌 Gast</option>
+        <option value="manuell eingetragen" ${cur==='manuell'?'selected':''}>✍️ Manuell</option>
+      </select>`;
+    }
+
     function makeRow(r, extraClass) {
       const date    = new Date(r.created_at);
       const dateStr = date.toLocaleDateString('de-DE')+'<br><span style="opacity:0.6">'+date.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr</span>';
@@ -436,9 +460,7 @@
       const katBadge = r.kategorie === 'Familie'
         ? `<span class="badge badge-familie">👨‍👩‍👧 Familie</span>`
         : `<span class="badge badge-freunde">🎉 Freunde</span>`;
-      const artBadge = r.eintragungsart === 'manuell eingetragen'
-        ? `<span class="badge badge-manuell">✍️ Manuell</span>`
-        : `<span class="badge badge-gast">💌 Gast</span>`;
+      const artBadge = artSelect(r);
       const rowClass = (isLatest ? 'is-duplicate-latest' : isOld ? 'is-duplicate-old' : '') + (extraClass ? ' '+extraClass : '');
       return `<tr class="${rowClass}">
         <td><strong>${r.vorname||'–'} ${r.nachname||''}</strong>${dupBadge}</td>
@@ -474,9 +496,7 @@
         const date    = new Date(latest.created_at);
         const dateStr = date.toLocaleDateString('de-DE')+'<br><span style="opacity:0.6">'+date.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr</span>';
         const badge   = zusageSelect(latest);
-        const artBadge = latest.eintragungsart === 'manuell eingetragen'
-          ? `<span class="badge badge-manuell">✍️ Manuell</span>`
-          : `<span class="badge badge-gast">💌 Gast</span>`;
+        const artBadge = artSelect(latest);
         const toggleBtn = `<button class="toggle-btn" onclick="toggleGroup('${groupId}', this)" title="${count} ältere Einträge">▼</button>`;
         const latestRow = `<tr class="is-duplicate-latest${separator?' '+separator:''}">
           <td><strong>${latest.vorname||'–'} ${latest.nachname||''}</strong><span class="badge badge-dup">⚠️ Duplikat</span>${toggleBtn}</td>
@@ -497,9 +517,7 @@
           const d    = new Date(r.created_at);
           const ds   = d.toLocaleDateString('de-DE')+'<br><span style="opacity:0.6">'+d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr</span>';
           const bdg  = zusageSelect(r);
-          const artBdg = r.eintragungsart === 'manuell eingetragen'
-            ? `<span class="badge badge-manuell">✍️ Manuell</span>`
-            : `<span class="badge badge-gast">💌 Gast</span>`;
+          const artBdg = artSelect(r);
           return `<tr class="is-duplicate-old collapsed" data-group="${groupId}">
             <td style="padding-left:36px"><strong>${r.vorname||'–'} ${r.nachname||''}</strong><span class="badge-dup-old">⚠️ Veraltet</span></td>
             <td>${bdg}</td>
@@ -553,6 +571,27 @@
       if (entry) entry.zusage = value;
       findDuplicates();
       updateStats();
+      renderTable();
+    } catch(err) {
+      alert('Fehler beim Speichern: ' + err.message);
+    }
+  }
+
+  async function updateEintragungsart(id, value) {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rsvp?id=eq.${id}`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimum'
+        },
+        body: JSON.stringify({ eintragungsart: value })
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const entry = allData.find(r => String(r.id) === String(id));
+      if (entry) entry.eintragungsart = value;
       renderTable();
     } catch(err) {
       alert('Fehler beim Speichern: ' + err.message);

@@ -237,13 +237,7 @@
           <option value="Freunde">🎉 Freunde</option>
           <option value="Familie">👨‍👩‍👧 Familie</option>
         </select>
-        <input type="text" id="add-personen" placeholder="Personenanzahl" list="personen-optionen">
-        <datalist id="personen-optionen">
-          <option value="1 Person">
-          <option value="2 Personen">
-          <option value="3 Personen">
-          <option value="4+ Personen">
-        </datalist>
+        <input type="number" id="add-personen" placeholder="Personenanzahl" min="1" step="1">
       </div>
       <div class="form-row">
         <select id="add-eintragungsart">
@@ -626,7 +620,7 @@
     document.getElementById('add-nachname').value = '';
     document.getElementById('add-zusage').value = '✅ Ja, wir kommen!';
     document.getElementById('add-kategorie').value = 'Freunde';
-    document.getElementById('add-personen').value = '1 Person';
+    document.getElementById('add-personen').value = '1';
     document.getElementById('add-eintragungsart').value = 'manuell eingetragen';
     document.getElementById('add-anmerkungen').value = '';
     document.getElementById('add-entry-error').textContent = '';
@@ -643,7 +637,8 @@
     document.getElementById('add-nachname').value = r.nachname || '';
     document.getElementById('add-zusage').value = matchZusageOption(r.zusage);
     document.getElementById('add-kategorie').value = r.kategorie === 'Familie' ? 'Familie' : 'Freunde';
-    document.getElementById('add-personen').value = r.personen || '';
+    const parsedPersonen = parseInt(r.personen);
+    document.getElementById('add-personen').value = !isNaN(parsedPersonen) ? parsedPersonen : 1;
     document.getElementById('add-eintragungsart').value = r.eintragungsart === 'manuell eingetragen' ? 'manuell eingetragen' : 'durch Gäste eingetragen';
     document.getElementById('add-anmerkungen').value = r.anmerkungen || '';
     document.getElementById('add-entry-error').textContent = '';

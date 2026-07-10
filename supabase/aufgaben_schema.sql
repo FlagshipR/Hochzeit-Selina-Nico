@@ -358,7 +358,18 @@ grant execute on function reset_person_passwort(text, uuid, text) to anon;
 -- diesen Block NICHT erneut ausführen. Alle weiteren Personen (Helfer,
 -- weitere Master) danach bequem über den Bereich "Personen verwalten"
 -- auf helfer-der-liebe.html anlegen.
-insert into personen (name, passwort, is_master) values
-  ('Selina', 'Blume42Kranz', true),
-  ('Nico',   'Feier17Tanz',  true)
+insert into personen (name, passwort, is_master, email) values
+  ('Selina', 'Blume42Kranz', true, 'selnic.senf@gmail.com'),
+  ('Nico',   'Feier17Tanz',  true, 'selnic.senf@gmail.com')
 on conflict (passwort) do nothing;
+-- Hinweis: selnic.senf@gmail.com ist die gemeinsame Kontakt-Adresse aus
+-- familie.html/index.html - beide Accounts landen also im selben Postfach.
+-- Falls ihr getrennte Adressen wollt: nach dem Login in "Personen verwalten"
+-- bei euch beiden auf "E-Mail ändern" klicken.
+
+-- Falls der Bootstrap-Block oben schon einmal (vor Einführung der
+-- email-Spalte) ausgeführt wurde, existieren Selina/Nico bereits ohne
+-- E-Mail -> hier nachträglich befüllen (idempotent, überschreibt keine
+-- schon gesetzte Adresse).
+update personen set email = 'selnic.senf@gmail.com'
+  where passwort in ('Blume42Kranz', 'Feier17Tanz') and email is null;

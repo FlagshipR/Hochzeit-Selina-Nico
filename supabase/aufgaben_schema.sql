@@ -143,17 +143,18 @@ as $$
 $$;
 grant execute on function login_person(text) to anon;
 
--- Aufgabe anlegen (jede eingeloggte Person darf das). Gibt zusätzlich Name
--- und E-Mail der zugewiesenen Person zurück, damit das Frontend eine
--- Benachrichtigungs-Mail verschicken kann - ohne dass dafür die komplette
--- Personenliste mit E-Mails offengelegt werden muss.
--- (Rückgabetyp geändert von uuid auf eine Tabelle -> alte Signatur muss
--- erst gedroppt werden, CREATE OR REPLACE erlaubt keinen Typwechsel.)
+-- Aufgabe anlegen (jede eingeloggte Person darf das). Gibt zusätzlich Name,
+-- E-Mail und die komplette aktuelle Aufgabenliste der zugewiesenen Person
+-- zurück (neue Aufgabe darin mit 🆕 markiert), damit das Frontend eine
+-- Benachrichtigungs-Mail mit vollem Überblick verschicken kann - ohne dass
+-- dafür die komplette Personenliste mit E-Mails offengelegt werden muss.
+-- (Rückgabetyp geändert -> alte Signatur muss erst gedroppt werden,
+-- CREATE OR REPLACE erlaubt keinen Typwechsel.)
 drop function if exists add_aufgabe(text, text, text, uuid);
 create or replace function add_aufgabe(
   p_passwort text, p_titel text, p_beschreibung text, p_zugewiesen_an uuid
 )
-returns table(aufgabe_id uuid, zugewiesen_name text, zugewiesen_email text)
+returns table(aufgabe_id uuid, zugewiesen_name text, zugewiesen_email text, zugewiesen_liste text)
 language plpgsql security definer set search_path = public
 as $$
 declare
@@ -161,6 +162,7 @@ declare
   v_new_id uuid;
   v_name text;
   v_email text;
+  v_liste text;
 begin
   select id into v_person_id from personen where passwort = p_passwort;
   if v_person_id is null then
@@ -174,9 +176,18 @@ begin
   if p_zugewiesen_an is not null then
     select personen.name, personen.email into v_name, v_email
       from personen where personen.id = p_zugewiesen_an;
+
+    select string_agg(
+      (case when a.id = v_new_id then '🆕 ' else '- ' end) || a.titel ||
+      ' [' || a.status || ']' ||
+      (case when a.beschreibung is not null then ' – ' || a.beschreibung else '' end),
+      E'\n' order by a.created_at desc
+    ) into v_liste
+    from aufgaben a
+    where a.zugewiesen_an = p_zugewiesen_an;
   end if;
 
-  return query select v_new_id, v_name, v_email;
+  return query select v_new_id, v_name, v_email, v_liste;
 end;
 $$;
 grant execute on function add_aufgabe(text, text, text, uuid) to anon;

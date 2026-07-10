@@ -678,7 +678,9 @@
           `   ${titel}\n` +
           `══════════════════════════\n` +
           `${beschreibung ? beschreibung + '\n\n' : '\n'}` +
-          `Deinen kompletten Stand siehst du hier: ${HELFER_SEITE_URL}`);
+          `Hier ist dein kompletter Stand (die neue Aufgabe ist mit 🆕 markiert):\n\n` +
+          `${info.zugewiesen_liste || '🆕 ' + titel}\n\n` +
+          `Alles ansehen: ${HELFER_SEITE_URL}`);
       }
       titelEl.value = '';
       beschreibungEl.value = '';

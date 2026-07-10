@@ -91,7 +91,7 @@
   .no-action { color: var(--text-light); font-size: 0.75rem; opacity: 0.5; }
 
   #personen-panel { margin-top: 44px; }
-  .personen-add { grid-template-columns: 1fr 1.3fr 0.8fr auto; }
+  .personen-add { grid-template-columns: 1fr 1.2fr 1.3fr 0.8fr auto; }
   .pw-field { display: flex; gap: 6px; }
   .pw-field input { flex: 1; }
   .btn-icon { background: var(--cream); border: 1px solid var(--beige-dark); color: var(--text-light); padding: 0 12px; cursor: pointer; font-size: 0.9rem; transition: all 0.2s; }
@@ -215,6 +215,10 @@
         <input type="text" id="p-name" placeholder="z.B. Julia">
       </div>
       <div class="field">
+        <label for="p-email">E-Mail (optional)</label>
+        <input type="email" id="p-email" placeholder="julia@beispiel.de">
+      </div>
+      <div class="field">
         <label for="p-passwort">Passwort</label>
         <div class="pw-field">
           <input type="text" id="p-passwort">
@@ -236,10 +240,44 @@
 
 </div>
 
+<!-- EmailJS: schickt Benachrichtigungen (neue Aufgabe, Status-Mail, Willkommen).
+     Nutzt denselben EmailJS-Account/Service wie index.html für die RSVP-Mails,
+     aber ein EIGENES Template - siehe Anleitung in supabase/aufgaben_schema.sql
+     bzw. README für den Template-Aufbau. EMAILJS_TEMPLATE_ID unten muss nach
+     dem Anlegen des Templates im EmailJS-Dashboard eingetragen werden. -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>
+  const EMAILJS_PUBLIC_KEY  = 'ITk7SM0bQds5csvvO';
+  const EMAILJS_SERVICE_ID  = 'service_w1mq4bz';
+  const EMAILJS_TEMPLATE_ID = 'TEMPLATE_ID_HIER_EINTRAGEN';
+  (function(){ if (window.emailjs) emailjs.init(EMAILJS_PUBLIC_KEY); })();
+
+  const HELFER_SEITE_URL = 'https://flagshipr.github.io/Hochzeit-Selina-Nico/helfer-der-liebe.html';
+
+  async function sendMail(toEmail, toName, betreff, inhalt) {
+    if (!toEmail || EMAILJS_TEMPLATE_ID === 'TEMPLATE_ID_HIER_EINTRAGEN') return;
+    try {
+      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+        to_email: toEmail, to_name: toName, betreff, inhalt
+      });
+    } catch (err) {
+      console.error('Mail-Versand fehlgeschlagen:', err);
+    }
+  }
+
+  function formatAufgabenListe(tasks) {
+    if (tasks.length === 0) return 'Aktuell sind dir keine Aufgaben zugewiesen.';
+    return tasks.map(t =>
+      `- ${t.titel} [${t.status === 'offen' ? 'offen' : 'erledigt'}]${t.beschreibung ? ' – ' + t.beschreibung : ''}`
+    ).join('\n');
+  }
+</script>
+
 <script>
   const SUPABASE_URL = 'https://jglfuixuxqonltromtax.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpnbGZ1aXh1eHFvbmx0cm9tdGF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzNzU5MjAsImV4cCI6MjA5Mzk1MTkyMH0.QthneaLOwVSjqS_2tHr2_GRSWfNE9nkY-9zEWIh0VVU';
   const SESSION_KEY  = 'aufgaben_session';
+  let personenAdmin = [];   // [{ id, name, is_master, email }] - nur für Master, aus list_personen_admin
 
   let me = null;            // { id, name, is_master, passwort }
   let allData = [];
@@ -326,27 +364,44 @@
       const sel = document.getElementById('f-zugewiesen');
       sel.innerHTML = '<option value="">– niemand –</option>' +
         personen.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
-      if (me.is_master) renderPersonenAdmin();
     } catch (err) { /* Dropdown bleibt dann leer, nicht kritisch */ }
+    if (me.is_master) loadPersonenAdmin();
+  }
+
+  async function loadPersonenAdmin() {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/list_personen_admin`, {
+        method: 'POST',
+        headers: rpcHeaders(),
+        body: JSON.stringify({ p_passwort_master: me.passwort })
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      personenAdmin = await res.json();
+      renderPersonenAdmin();
+    } catch (err) { /* Panel bleibt dann leer, nicht kritisch */ }
   }
 
   function renderPersonenAdmin() {
     const container = document.getElementById('personen-table-container');
-    if (personen.length === 0) {
+    if (personenAdmin.length === 0) {
       container.innerHTML = '<div class="empty-state">Noch keine Personen angelegt.</div>';
       return;
     }
     container.innerHTML = `
       <table>
         <thead>
-          <tr><th>Name</th><th>Rolle</th><th></th></tr>
+          <tr><th>Name</th><th>Rolle</th><th>E-Mail</th><th></th></tr>
         </thead>
         <tbody>
-          ${personen.map(p => `
+          ${personenAdmin.map(p => `
             <tr>
               <td>${escapeHtml(p.name)}</td>
               <td><span class="role-badge ${p.is_master ? 'master' : 'helfer'}">${p.is_master ? 'Master' : 'Helfer'}</span></td>
+              <td>${escapeHtml(p.email || '–')}</td>
               <td>
+                <button class="btn-small" onclick="setPersonEmail('${p.id}')">${p.email ? 'E-Mail ändern' : 'E-Mail setzen'}</button>
+                <button class="btn-small" ${p.email ? '' : 'disabled title="Keine E-Mail hinterlegt"'}
+                  onclick="sendStatusMail('${p.id}')">Status-Mail senden</button>
                 <button class="btn-small" onclick="resetPersonPasswort('${p.id}')">Passwort zurücksetzen</button>
                 <button class="btn-small danger" ${p.id === me.id ? 'disabled title="Du kannst dich nicht selbst löschen"' : ''}
                   onclick="deletePerson('${p.id}')">Löschen</button>
@@ -356,14 +411,45 @@
       </table>`;
   }
 
+  async function setPersonEmail(id) {
+    const person = personenAdmin.find(p => p.id === id);
+    const neu = window.prompt(`E-Mail-Adresse für ${person ? person.name : ''}:`, (person && person.email) || '');
+    if (neu === null) return;
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/update_person_email`, {
+        method: 'POST',
+        headers: rpcHeaders(),
+        body: JSON.stringify({ p_passwort_master: me.passwort, p_person_id: id, p_email: neu })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Fehler beim Speichern');
+      }
+      loadPersonenAdmin();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  async function sendStatusMail(id) {
+    const person = personenAdmin.find(p => p.id === id);
+    if (!person || !person.email) return;
+    const tasks = allData.filter(a => a.zugewiesen_an_id === id);
+    const inhalt = `hier ist dein aktueller Stand für die Aufgabenliste von Selina & Nico:\n\n${formatAufgabenListe(tasks)}\n\nAlles ansehen: ${HELFER_SEITE_URL}`;
+    await sendMail(person.email, person.name, 'Dein aktueller Aufgaben-Stand', inhalt);
+    alert(`Status-Mail an ${person.name} gesendet.`);
+  }
+
   async function addPerson() {
     const nameEl = document.getElementById('p-name');
+    const emailEl = document.getElementById('p-email');
     const pwEl = document.getElementById('p-passwort');
     const masterEl = document.getElementById('p-master');
     const errEl = document.getElementById('person-error');
     errEl.classList.remove('show');
 
     const name = nameEl.value.trim();
+    const email = emailEl.value.trim();
     const pw = pwEl.value.trim();
     if (!name || !pw) {
       errEl.textContent = 'Bitte Name und Passwort ausfüllen.';
@@ -379,7 +465,8 @@
           p_passwort_master: me.passwort,
           p_name: name,
           p_neues_passwort: pw,
-          p_is_master: masterEl.value === 'true'
+          p_is_master: masterEl.value === 'true',
+          p_email: email || null
         })
       });
       if (!res.ok) {
@@ -387,7 +474,12 @@
         throw new Error(err.message || 'Fehler beim Anlegen');
       }
       window.prompt(`Zugangsdaten für ${name} (zum Kopieren markieren):`, `Name: ${name}  ·  Passwort: ${pw}`);
+      if (email) {
+        await sendMail(email, name, 'Willkommen bei "Helfer der Liebe"',
+          `du hast jetzt Zugang zur Aufgabenliste für die Hochzeit von Selina & Nico.\n\nDein Passwort: ${pw}\n\nHier geht's zur Seite: ${HELFER_SEITE_URL}`);
+      }
       nameEl.value = '';
+      emailEl.value = '';
       masterEl.value = 'false';
       pwEl.value = generatePassword();
       loadPersonen();
@@ -540,6 +632,8 @@
       return;
     }
 
+    const beschreibung = beschreibungEl.value.trim();
+
     try {
       const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/add_aufgabe`, {
         method: 'POST',
@@ -547,13 +641,19 @@
         body: JSON.stringify({
           p_passwort: me.passwort,
           p_titel: titel,
-          p_beschreibung: beschreibungEl.value.trim(),
+          p_beschreibung: beschreibung,
           p_zugewiesen_an: zugewiesenEl.value || null
         })
       });
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.message || 'Fehler beim Speichern');
+      }
+      const rows = await res.json();
+      const info = Array.isArray(rows) ? rows[0] : rows;
+      if (info && info.zugewiesen_email) {
+        await sendMail(info.zugewiesen_email, info.zugewiesen_name, `Neue Aufgabe: ${titel}`,
+          `dir wurde eine neue Aufgabe zugewiesen:\n\n"${titel}"${beschreibung ? '\n' + beschreibung : ''}\n\nDeinen kompletten Stand siehst du hier: ${HELFER_SEITE_URL}`);
       }
       titelEl.value = '';
       beschreibungEl.value = '';

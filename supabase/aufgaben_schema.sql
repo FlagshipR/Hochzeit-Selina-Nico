@@ -18,8 +18,10 @@ create table if not exists personen (
   name text not null,
   passwort text not null unique,
   is_master boolean not null default false,
+  email text,
   created_at timestamptz not null default now()
 );
+alter table personen add column if not exists email text;
 
 create table if not exists aufgaben (
   id uuid primary key default gen_random_uuid(),
@@ -36,10 +38,56 @@ alter table aufgaben enable row level security;
 -- Bewusst keine Policies für anon auf den Rohtabellen -> Zugriff nur über
 -- die Views/Functions unten.
 
--- Öffentliche Sicht auf Personen ohne Passwort (für Dropdown "zugewiesen an")
+-- Öffentliche Sicht auf Personen ohne Passwort und ohne E-Mail (für Dropdown
+-- "zugewiesen an" - jede eingeloggte Person darf die Namensliste sehen, aber
+-- nicht die E-Mail-Adressen aller anderen).
 create or replace view personen_public as
   select id, name, is_master from personen;
 grant select on personen_public to anon;
+
+-- Personenliste inkl. E-Mail: nur für Master (Personen-Verwaltung + Status-Mail).
+create or replace function list_personen_admin(p_passwort_master text)
+returns table(id uuid, name text, is_master boolean, email text)
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v_is_master boolean;
+begin
+  select personen.is_master into v_is_master from personen where passwort = p_passwort_master;
+  if v_is_master is null then
+    raise exception 'Ungültiges Passwort';
+  end if;
+  if not v_is_master then
+    raise exception 'Keine Berechtigung';
+  end if;
+
+  return query select personen.id, personen.name, personen.is_master, personen.email
+    from personen order by personen.name asc;
+end;
+$$;
+grant execute on function list_personen_admin(text) to anon;
+
+-- E-Mail-Adresse einer Person setzen/ändern: nur Master.
+create or replace function update_person_email(p_passwort_master text, p_person_id uuid, p_email text)
+returns boolean
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v_is_master boolean;
+begin
+  select is_master into v_is_master from personen where passwort = p_passwort_master;
+  if v_is_master is null then
+    raise exception 'Ungültiges Passwort';
+  end if;
+  if not v_is_master then
+    raise exception 'Keine Berechtigung';
+  end if;
+
+  update personen set email = nullif(trim(p_email), '') where id = p_person_id;
+  return found;
+end;
+$$;
+grant execute on function update_person_email(text, uuid, text) to anon;
 
 -- Sicht auf Aufgaben mit aufgelösten Namen. NICHT an anon freigegeben,
 -- da sonst jeder mit dem anon-Key alle Aufgaben aller Personen abrufen
@@ -95,16 +143,24 @@ as $$
 $$;
 grant execute on function login_person(text) to anon;
 
--- Aufgabe anlegen (jede eingeloggte Person darf das)
+-- Aufgabe anlegen (jede eingeloggte Person darf das). Gibt zusätzlich Name
+-- und E-Mail der zugewiesenen Person zurück, damit das Frontend eine
+-- Benachrichtigungs-Mail verschicken kann - ohne dass dafür die komplette
+-- Personenliste mit E-Mails offengelegt werden muss.
+-- (Rückgabetyp geändert von uuid auf eine Tabelle -> alte Signatur muss
+-- erst gedroppt werden, CREATE OR REPLACE erlaubt keinen Typwechsel.)
+drop function if exists add_aufgabe(text, text, text, uuid);
 create or replace function add_aufgabe(
   p_passwort text, p_titel text, p_beschreibung text, p_zugewiesen_an uuid
 )
-returns uuid
+returns table(aufgabe_id uuid, zugewiesen_name text, zugewiesen_email text)
 language plpgsql security definer set search_path = public
 as $$
 declare
   v_person_id uuid;
   v_new_id uuid;
+  v_name text;
+  v_email text;
 begin
   select id into v_person_id from personen where passwort = p_passwort;
   if v_person_id is null then
@@ -115,7 +171,12 @@ begin
   values (p_titel, nullif(p_beschreibung, ''), p_zugewiesen_an, v_person_id)
   returning id into v_new_id;
 
-  return v_new_id;
+  if p_zugewiesen_an is not null then
+    select personen.name, personen.email into v_name, v_email
+      from personen where personen.id = p_zugewiesen_an;
+  end if;
+
+  return query select v_new_id, v_name, v_email;
 end;
 $$;
 grant execute on function add_aufgabe(text, text, text, uuid) to anon;
@@ -185,8 +246,11 @@ grant execute on function update_aufgabe_status(text, uuid, text) to anon;
 -- Neue Person anlegen: nur Master dürfen das. So können Selina & Nico
 -- Helfer direkt auf der Seite anlegen, ohne das Supabase-Dashboard oder
 -- git anzufassen (Passwörter landen dadurch nie im Repo/in der Git-Historie).
+-- (Parameterliste um p_email erweitert -> alte Signatur erst droppen.)
+drop function if exists add_person(text, text, text, boolean);
 create or replace function add_person(
-  p_passwort_master text, p_name text, p_neues_passwort text, p_is_master boolean default false
+  p_passwort_master text, p_name text, p_neues_passwort text, p_is_master boolean default false,
+  p_email text default null
 )
 returns uuid
 language plpgsql security definer set search_path = public
@@ -209,8 +273,8 @@ begin
     raise exception 'Passwort muss mindestens 4 Zeichen haben';
   end if;
 
-  insert into personen (name, passwort, is_master)
-  values (trim(p_name), p_neues_passwort, coalesce(p_is_master, false))
+  insert into personen (name, passwort, is_master, email)
+  values (trim(p_name), p_neues_passwort, coalesce(p_is_master, false), nullif(trim(p_email), ''))
   returning id into v_new_id;
 
   return v_new_id;
@@ -219,7 +283,7 @@ exception
     raise exception 'Dieses Passwort ist schon vergeben, bitte ein anderes wählen';
 end;
 $$;
-grant execute on function add_person(text, text, text, boolean) to anon;
+grant execute on function add_person(text, text, text, boolean, text) to anon;
 
 -- Person löschen: nur Master. Der letzte Master kann sich nicht selbst
 -- aussperren -> ein Master kann nicht gelöscht werden, solange er der

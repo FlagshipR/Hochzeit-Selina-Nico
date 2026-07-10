@@ -103,6 +103,7 @@
   .btn-small:hover { border-color: var(--sage); color: var(--sage); }
   .btn-small.danger:hover { border-color: var(--red); color: var(--red); }
   .btn-small:disabled { opacity: 0.35; cursor: not-allowed; }
+  .mail-sent-badge { margin-top: 6px; font-size: 0.7rem; color: var(--green); }
 
   .loading { text-align: center; padding: 60px; color: var(--text-light); }
   .empty-state { text-align: center; padding: 60px; color: var(--text-light); }
@@ -387,13 +388,16 @@
       container.innerHTML = '<div class="empty-state">Noch keine Personen angelegt.</div>';
       return;
     }
+    const log = getStatusMailLog();
     container.innerHTML = `
       <table>
         <thead>
           <tr><th>Name</th><th>Rolle</th><th>E-Mail</th><th></th></tr>
         </thead>
         <tbody>
-          ${personenAdmin.map(p => `
+          ${personenAdmin.map(p => {
+            const gesendetAm = log[p.id];
+            return `
             <tr>
               <td>${escapeHtml(p.name)}</td>
               <td><span class="role-badge ${p.is_master ? 'master' : 'helfer'}">${p.is_master ? 'Master' : 'Helfer'}</span></td>
@@ -405,8 +409,10 @@
                 <button class="btn-small" onclick="resetPersonPasswort('${p.id}')">Passwort zurücksetzen</button>
                 <button class="btn-small danger" ${p.id === me.id ? 'disabled title="Du kannst dich nicht selbst löschen"' : ''}
                   onclick="deletePerson('${p.id}')">Löschen</button>
+                ${gesendetAm ? `<div class="mail-sent-badge">✓ E-Mail versendet am ${new Date(gesendetAm).toLocaleDateString('de-DE')} um ${new Date(gesendetAm).toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit'})} Uhr</div>` : ''}
               </td>
-            </tr>`).join('')}
+            </tr>`;
+          }).join('')}
         </tbody>
       </table>`;
   }
@@ -431,13 +437,27 @@
     }
   }
 
+  const STATUS_MAIL_LOG_KEY = 'status_mail_log';
+
+  function getStatusMailLog() {
+    try { return JSON.parse(localStorage.getItem(STATUS_MAIL_LOG_KEY)) || {}; }
+    catch (e) { return {}; }
+  }
+
+  function markStatusMailSent(personId) {
+    const log = getStatusMailLog();
+    log[personId] = new Date().toISOString();
+    localStorage.setItem(STATUS_MAIL_LOG_KEY, JSON.stringify(log));
+  }
+
   async function sendStatusMail(id) {
     const person = personenAdmin.find(p => p.id === id);
     if (!person || !person.email) return;
     const tasks = allData.filter(a => a.zugewiesen_an_id === id);
     const inhalt = `hier ist dein aktueller Stand für die Aufgabenliste von Selina & Nico:\n\n${formatAufgabenListe(tasks)}\n\nAlles ansehen: ${HELFER_SEITE_URL}`;
     await sendMail(person.email, person.name, 'Dein aktueller Aufgaben-Stand', inhalt);
-    alert(`Status-Mail an ${person.name} gesendet.`);
+    markStatusMailSent(id);
+    renderPersonenAdmin();
   }
 
   async function addPerson() {
@@ -653,7 +673,12 @@
       const info = Array.isArray(rows) ? rows[0] : rows;
       if (info && info.zugewiesen_email) {
         await sendMail(info.zugewiesen_email, info.zugewiesen_name, `Neue Aufgabe: ${titel}`,
-          `dir wurde eine neue Aufgabe zugewiesen:\n\n"${titel}"${beschreibung ? '\n' + beschreibung : ''}\n\nDeinen kompletten Stand siehst du hier: ${HELFER_SEITE_URL}`);
+          `dir wurde eine neue Aufgabe zugewiesen:\n\n` +
+          `🆕 ══════════════════════════\n` +
+          `   ${titel}\n` +
+          `══════════════════════════\n` +
+          `${beschreibung ? beschreibung + '\n\n' : '\n'}` +
+          `Deinen kompletten Stand siehst du hier: ${HELFER_SEITE_URL}`);
       }
       titelEl.value = '';
       beschreibungEl.value = '';

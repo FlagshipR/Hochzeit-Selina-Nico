@@ -266,11 +266,39 @@
     }
   }
 
-  function formatAufgabenListe(tasks) {
-    if (tasks.length === 0) return 'Aktuell sind dir keine Aufgaben zugewiesen.';
-    return tasks.map(t =>
-      `- ${t.titel} [${t.status === 'offen' ? 'offen' : 'erledigt'}]${t.beschreibung ? ' – ' + t.beschreibung : ''}`
-    ).join('\n');
+  // Baut eine duplikatfreie HTML-Aufgabenliste für Mails: offen/erledigt
+  // getrennt, neue Aufgaben (t.ist_neu) mit "NEU"-Badge hervorgehoben,
+  // erledigte durchgestrichen/gedimmt. Wird von der "Neue Aufgabe"- und
+  // der "Status"-Mail gemeinsam genutzt, damit beide gleich aussehen.
+  function buildAufgabenListeHtml(tasks) {
+    const seen = new Set();
+    const eindeutig = tasks.filter(t => {
+      if (seen.has(t.id)) return false;
+      seen.add(t.id);
+      return true;
+    });
+    const offen = eindeutig.filter(t => t.status === 'offen');
+    const erledigt = eindeutig.filter(t => t.status === 'erledigt');
+
+    const zeile = (t, style) => {
+      const badge = t.ist_neu
+        ? ' <span style="background:#7a8c6e;color:#fff;font-size:11px;font-weight:bold;padding:2px 8px;border-radius:10px;letter-spacing:0.05em;">NEU</span>'
+        : '';
+      const beschreibung = t.beschreibung ? ` – ${escapeHtml(t.beschreibung)}` : '';
+      return `<div style="padding:8px 0;border-bottom:1px solid #e0d4b8;${style}">${escapeHtml(t.titel)}${beschreibung}${badge}</div>`;
+    };
+
+    let html = '<div style="font-weight:bold;color:#7a8c6e;margin:18px 0 6px;">📋 Offene Aufgaben</div>';
+    html += offen.length
+      ? offen.map(t => zeile(t, '')).join('')
+      : '<div style="color:#9c7e63;">Aktuell keine offenen Aufgaben.</div>';
+
+    if (erledigt.length > 0) {
+      html += '<div style="font-weight:bold;color:#7a8c6e;margin:18px 0 6px;">✅ Erledigte Aufgaben</div>';
+      html += erledigt.map(t => zeile(t, 'color:#a8b89a;text-decoration:line-through;')).join('');
+    }
+
+    return html;
   }
 </script>
 
@@ -454,7 +482,9 @@
     const person = personenAdmin.find(p => p.id === id);
     if (!person || !person.email) return;
     const tasks = allData.filter(a => a.zugewiesen_an_id === id);
-    const inhalt = `hier ist dein aktueller Stand für die Aufgabenliste von Selina & Nico:\n\n${formatAufgabenListe(tasks)}\n\nAlles ansehen: ${HELFER_SEITE_URL}`;
+    const inhalt = `hier ist dein aktueller Stand für die Aufgabenliste von Selina & Nico:` +
+      buildAufgabenListeHtml(tasks) +
+      `<br>Alles ansehen: <a href="${HELFER_SEITE_URL}" style="color:#7a8c6e;">${HELFER_SEITE_URL}</a>`;
     await sendMail(person.email, person.name, 'Dein aktueller Aufgaben-Stand', inhalt);
     markStatusMailSent(id);
     renderPersonenAdmin();
@@ -672,15 +702,12 @@
       const rows = await res.json();
       const info = Array.isArray(rows) ? rows[0] : rows;
       if (info && info.zugewiesen_email) {
-        await sendMail(info.zugewiesen_email, info.zugewiesen_name, `Neue Aufgabe: ${titel}`,
-          `dir wurde eine neue Aufgabe zugewiesen:\n\n` +
-          `🆕 ══════════════════════════\n` +
-          `   ${titel}\n` +
-          `══════════════════════════\n` +
-          `${beschreibung ? beschreibung + '\n\n' : '\n'}` +
-          `Hier ist dein kompletter Stand (die neue Aufgabe ist mit 🆕 markiert):\n\n` +
-          `${info.zugewiesen_liste || '🆕 ' + titel}\n\n` +
-          `Alles ansehen: ${HELFER_SEITE_URL}`);
+        const tasks = info.zugewiesen_liste || [{ id: 'neu', titel, beschreibung, status: 'offen', ist_neu: true }];
+        const inhalt =
+          `dir wurde eine neue Aufgabe zugewiesen: <strong>${escapeHtml(titel)}</strong>${beschreibung ? ' – ' + escapeHtml(beschreibung) : ''}.` +
+          buildAufgabenListeHtml(tasks) +
+          `<br>Alles ansehen: <a href="${HELFER_SEITE_URL}" style="color:#7a8c6e;">${HELFER_SEITE_URL}</a>`;
+        await sendMail(info.zugewiesen_email, info.zugewiesen_name, `Neue Aufgabe: ${titel}`, inhalt);
       }
       titelEl.value = '';
       beschreibungEl.value = '';

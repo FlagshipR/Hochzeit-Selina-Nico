@@ -145,16 +145,18 @@ grant execute on function login_person(text) to anon;
 
 -- Aufgabe anlegen (jede eingeloggte Person darf das). Gibt zusätzlich Name,
 -- E-Mail und die komplette aktuelle Aufgabenliste der zugewiesenen Person
--- zurück (neue Aufgabe darin mit 🆕 markiert), damit das Frontend eine
--- Benachrichtigungs-Mail mit vollem Überblick verschicken kann - ohne dass
--- dafür die komplette Personenliste mit E-Mails offengelegt werden muss.
+-- als JSON zurück (neue Aufgabe darin mit ist_neu=true markiert, jede
+-- Aufgabe genau einmal enthalten), damit das Frontend eine
+-- Benachrichtigungs-Mail mit vollem, duplikatfreiem Überblick verschicken
+-- kann - ohne dass dafür die komplette Personenliste mit E-Mails
+-- offengelegt werden muss.
 -- (Rückgabetyp geändert -> alte Signatur muss erst gedroppt werden,
 -- CREATE OR REPLACE erlaubt keinen Typwechsel.)
 drop function if exists add_aufgabe(text, text, text, uuid);
 create or replace function add_aufgabe(
   p_passwort text, p_titel text, p_beschreibung text, p_zugewiesen_an uuid
 )
-returns table(aufgabe_id uuid, zugewiesen_name text, zugewiesen_email text, zugewiesen_liste text)
+returns table(aufgabe_id uuid, zugewiesen_name text, zugewiesen_email text, zugewiesen_liste json)
 language plpgsql security definer set search_path = public
 as $$
 declare
@@ -162,7 +164,7 @@ declare
   v_new_id uuid;
   v_name text;
   v_email text;
-  v_liste text;
+  v_liste json;
 begin
   select id into v_person_id from personen where passwort = p_passwort;
   if v_person_id is null then
@@ -177,12 +179,13 @@ begin
     select personen.name, personen.email into v_name, v_email
       from personen where personen.id = p_zugewiesen_an;
 
-    select string_agg(
-      (case when a.id = v_new_id then '🆕 ' else '- ' end) || a.titel ||
-      ' [' || a.status || ']' ||
-      (case when a.beschreibung is not null then ' – ' || a.beschreibung else '' end),
-      E'\n' order by a.created_at desc
-    ) into v_liste
+    select json_agg(json_build_object(
+      'id', a.id,
+      'titel', a.titel,
+      'beschreibung', a.beschreibung,
+      'status', a.status,
+      'ist_neu', (a.id = v_new_id)
+    ) order by a.created_at desc) into v_liste
     from aufgaben a
     where a.zugewiesen_an = p_zugewiesen_an;
   end if;

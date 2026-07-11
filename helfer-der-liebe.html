@@ -266,10 +266,10 @@
     }
   }
 
-  // Baut eine duplikatfreie HTML-Aufgabenliste für Mails: offen/erledigt
-  // getrennt, neue Aufgaben (t.ist_neu) mit "NEU"-Badge hervorgehoben,
-  // erledigte durchgestrichen/gedimmt. Wird von der "Neue Aufgabe"- und
-  // der "Status"-Mail gemeinsam genutzt, damit beide gleich aussehen.
+  // Baut eine duplikatfreie HTML-Tabelle (Punkt / Notiz / Status / Eingetragen
+  // am) für Mails. Neue Aufgaben (t.ist_neu) bekommen ein "NEU"-Badge, der
+  // Status wird mit Emoji dargestellt. Wird von der "Neue Aufgabe"- und der
+  // "Status"-Mail gemeinsam genutzt, damit beide gleich aussehen.
   function buildAufgabenListeHtml(tasks) {
     const seen = new Set();
     const eindeutig = tasks.filter(t => {
@@ -277,28 +277,38 @@
       seen.add(t.id);
       return true;
     });
-    const offen = eindeutig.filter(t => t.status === 'offen');
-    const erledigt = eindeutig.filter(t => t.status === 'erledigt');
 
-    const zeile = (t, style) => {
-      const badge = t.ist_neu
-        ? ' <span style="background:#7a8c6e;color:#fff;font-size:11px;font-weight:bold;padding:2px 8px;border-radius:10px;letter-spacing:0.05em;">NEU</span>'
-        : '';
-      const beschreibung = t.beschreibung ? ` – ${escapeHtml(t.beschreibung)}` : '';
-      return `<div style="padding:8px 0;border-bottom:1px solid #e0d4b8;${style}">${escapeHtml(t.titel)}${beschreibung}${badge}</div>`;
-    };
-
-    let html = '<div style="font-weight:bold;color:#7a8c6e;margin:18px 0 6px;">📋 Offene Aufgaben</div>';
-    html += offen.length
-      ? offen.map(t => zeile(t, '')).join('')
-      : '<div style="color:#9c7e63;">Aktuell keine offenen Aufgaben.</div>';
-
-    if (erledigt.length > 0) {
-      html += '<div style="font-weight:bold;color:#7a8c6e;margin:18px 0 6px;">✅ Erledigte Aufgaben</div>';
-      html += erledigt.map(t => zeile(t, 'color:#a8b89a;text-decoration:line-through;')).join('');
+    if (eindeutig.length === 0) {
+      return '<div style="color:#9c7e63;margin-top:12px;">Aktuell keine Aufgaben.</div>';
     }
 
-    return html;
+    const th = (text) =>
+      `<th style="text-align:left;padding:8px 10px;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#9c7e63;background:#e0d4b8;">${text}</th>`;
+
+    const zeile = (t, i) => {
+      const badge = t.ist_neu
+        ? ' <span style="background:#7a8c6e;color:#fff;font-size:10px;font-weight:bold;padding:2px 7px;border-radius:10px;letter-spacing:0.05em;">NEU</span>'
+        : '';
+      const statusLabel = t.status === 'erledigt' ? '✅ Erledigt' : '🟠 Offen';
+      const datum = t.created_at ? new Date(t.created_at).toLocaleDateString('de-DE') : '–';
+      const bg = i % 2 === 0 ? '#faf7f0' : '#f2ead8';
+      const titelStyle = t.status === 'erledigt' ? 'color:#a8b89a;text-decoration:line-through;' : '';
+      return `
+        <tr style="background:${bg};">
+          <td style="padding:8px 10px;border-bottom:1px solid #e0d4b8;font-weight:bold;${titelStyle}">${escapeHtml(t.titel)}${badge}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid #e0d4b8;color:#6b5f52;">${t.beschreibung ? escapeHtml(t.beschreibung) : '–'}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid #e0d4b8;white-space:nowrap;">${statusLabel}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid #e0d4b8;color:#6b5f52;font-size:12px;white-space:nowrap;">${datum}</td>
+        </tr>`;
+    };
+
+    return `
+      <table role="presentation" style="width:100%;border-collapse:collapse;margin-top:14px;font-size:13px;">
+        <thead>
+          <tr>${th('Punkt')}${th('Notiz')}${th('Status')}${th('Eingetragen am')}</tr>
+        </thead>
+        <tbody>${eindeutig.map(zeile).join('')}</tbody>
+      </table>`;
   }
 </script>
 
@@ -702,7 +712,7 @@
       const rows = await res.json();
       const info = Array.isArray(rows) ? rows[0] : rows;
       if (info && info.zugewiesen_email) {
-        const tasks = info.zugewiesen_liste || [{ id: 'neu', titel, beschreibung, status: 'offen', ist_neu: true }];
+        const tasks = info.zugewiesen_liste || [{ id: 'neu', titel, beschreibung, status: 'offen', ist_neu: true, created_at: new Date().toISOString() }];
         const inhalt =
           `dir wurde eine neue Aufgabe zugewiesen: <strong>${escapeHtml(titel)}</strong>${beschreibung ? ' – ' + escapeHtml(beschreibung) : ''}.` +
           buildAufgabenListeHtml(tasks) +

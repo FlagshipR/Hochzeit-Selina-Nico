@@ -184,7 +184,8 @@ begin
       'titel', a.titel,
       'beschreibung', a.beschreibung,
       'status', a.status,
-      'ist_neu', (a.id = v_new_id)
+      'ist_neu', (a.id = v_new_id),
+      'created_at', a.created_at
     ) order by a.created_at desc) into v_liste
     from aufgaben a
     where a.zugewiesen_an = p_zugewiesen_an;

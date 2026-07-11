@@ -82,11 +82,13 @@
             {{betreff}}
           </div>
 
-          <!-- Anrede + Freitext -->
+          <!-- Anrede + Inhalt (HTML, daher DREIFACHE Klammern {{{inhalt}}} -
+               EmailJS escaped {{inhalt}} sonst als sichtbaren Text, siehe
+               https://www.emailjs.com/docs/user-guide/dynamic-variables-templates/ ) -->
           <div style="background: #faf7f0; border-radius: 8px; padding: 16px 18px; line-height: 1.6;">
             Hallo {{to_name}},
-            <br><br>
-            <div style="white-space: pre-line;">{{inhalt}}</div>
+            <br>
+            {{{inhalt}}}
           </div>
 
         </td>

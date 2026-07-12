@@ -2,73 +2,100 @@
   EmailJS-Template für "Helfer der Liebe" (helfer-der-liebe.html)
   ==================================================================
   Im EmailJS-Dashboard (dashboard.emailjs.com) -> Email Templates ->
-  Create New Template einfügen:
+  Template "template_c0z3nl5" öffnen -> Content-Feld:
+
+    1. In den Code-/Quellcode-Modus wechseln (Symbol </> bzw. Reiter "Code").
+    2. ALLES im Editor markieren (Strg+A) und löschen, bevor der neue
+       Code eingefügt wird - sonst bleiben alte Blöcke/Reste stehen
+       (das war der Grund für die leeren beigen Kästen ganz oben in der
+       letzten Version).
+    3. Diesen kompletten Code einfügen.
+    4. Prüfen, ob es in EmailJS zusätzlich einen separaten "Header" oder
+       "Footer" für Templates gibt (oft ein eigener Bereich, unabhängig
+       vom Content-Feld) - falls dort noch etwas von früher steht, auch
+       dort leeren.
 
     To email:  {{to_email}}
     Subject:   {{betreff}}
-    Content:   dieser HTML-Code hier (Editor auf HTML/Code-Modus stellen)
 
-  Nach dem Speichern die Template-ID in helfer-der-liebe.html bei
-  EMAILJS_TEMPLATE_ID eintragen.
-
-  Variablen, die der Code befüllt (siehe sendMail() in
-  helfer-der-liebe.html): to_email, to_name, betreff, inhalt.
+  Variablen: to_email, to_name, betreff, inhalt (siehe sendMail() in
+  helfer-der-liebe.html).
 
   WICHTIG: {{inhalt}} enthält HTML (u.a. eine Aufgaben-Tabelle) und MUSS
   daher mit DREI geschweiften Klammern eingebunden werden: {{{inhalt}}}.
-  EmailJS escaped {{inhalt}} (zwei Klammern) sonst als sichtbaren Text
-  statt es als HTML zu rendern, siehe
-  https://www.emailjs.com/docs/user-guide/dynamic-variables-templates/
-  {{betreff}} und {{to_name}} enthalten nur reinen Text und bleiben
-  bewusst bei zwei Klammern.
+  {{betreff}} und {{to_name}} enthalten nur reinen Text, bewusst bei
+  zwei Klammern.
 
-  Bild-Layout bewusst einspaltig (kein zweispaltiges Tabellen-Layout mit
-  Media-Query mehr) und mit HARTEM width/height-HTML-Attribut auf dem
-  <img>, nicht nur CSS - viele Mail-Clients (v.a. mobile Webmail)
-  ignorieren CSS-Breiten auf Bildern und skalieren sonst auf volle
-  Spaltenbreite hoch.
+  Layout bewusst als VERSCHACHTELTE <table> statt <div>-Boxen gebaut
+  (klassische "bulletproof HTML email"-Technik) - E-Mail-Baukästen wie
+  der von EmailJS parsen eingefügten Code oft in eigene "Blöcke" und
+  können dabei freie <div>-Strukturen verändern/verwerfen; Tabellen
+  überleben diesen Import zuverlässiger.
 -->
-<div style="font-family: system-ui, sans-serif, Arial; font-size: 14px; color: #3a3228; max-width: 480px; margin: 0 auto;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 480px; margin: 0 auto; font-family: system-ui, sans-serif, Arial; font-size: 14px; color: #3a3228;">
+  <tr>
+    <td style="background: #f2ead8; padding: 24px; border-left: 4px solid #7a8c6e; border-radius: 10px;">
 
-  <div style="background: #f2ead8; padding: 24px; border-left: 4px solid #7a8c6e; border-radius: 10px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
 
-    <!-- Header -->
-    <div style="font-size: 20px; font-weight: bold; color: #7a8c6e; margin-bottom: 4px;">
-      🌿 Helfer der Liebe
-    </div>
+        <!-- Header -->
+        <tr>
+          <td style="font-size: 20px; font-weight: bold; color: #7a8c6e; padding-bottom: 4px;">
+            🌿 Helfer der Liebe
+          </td>
+        </tr>
+        <tr>
+          <td style="color: #9c7e63; font-size: 13px; padding-bottom: 18px;">
+            Hochzeit Selina & Nicolai · 12. September 2026
+          </td>
+        </tr>
 
-    <div style="color: #9c7e63; font-size: 13px; margin-bottom: 18px;">
-      Hochzeit Selina & Nicolai · 12. September 2026
-    </div>
+        <!-- Bild: feste Pixel-Größe per HTML-Attribut (nicht nur CSS),
+             damit mobile/webbasierte Mail-Clients es nicht auf volle
+             Breite hochskalieren -->
+        <tr>
+          <td style="padding-bottom: 18px;">
+            <img
+              src="https://flagshipr.github.io/Hochzeit-Selina-Nico/sektglas.jpeg"
+              alt="Selina & Nicolai"
+              width="90"
+              height="90"
+              style="width: 90px; height: 90px; max-width: 90px; border-radius: 10px; display: block; object-fit: cover;"
+            >
+          </td>
+        </tr>
 
-    <!-- Bild: feste Pixel-Größe per HTML-Attribut (nicht nur CSS), damit
-         mobile/webbasierte Mail-Clients es nicht auf volle Breite ziehen -->
-    <img
-      src="https://flagshipr.github.io/Hochzeit-Selina-Nico/sektglas.jpeg"
-      alt="Selina & Nicolai"
-      width="90"
-      height="90"
-      style="width: 90px; height: 90px; max-width: 90px; border-radius: 10px; display: block; margin-bottom: 18px; object-fit: cover;"
-    >
+        <!-- Betreff-Zeile, hervorgehoben -->
+        <tr>
+          <td style="background: #faf7f0; border-radius: 8px; padding: 12px 16px; font-weight: bold; color: #3a3228;">
+            {{betreff}}
+          </td>
+        </tr>
 
-    <!-- Betreff-Zeile, hervorgehoben -->
-    <div style="background: #faf7f0; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-weight: bold; color: #3a3228;">
-      {{betreff}}
-    </div>
+        <tr><td style="height: 16px; line-height: 16px; font-size: 0;">&nbsp;</td></tr>
 
-    <!-- Anrede + Inhalt -->
-    <div style="background: #faf7f0; border-radius: 8px; padding: 16px 18px; line-height: 1.6;">
-      Hallo {{to_name}},
-      <br>
-      {{{inhalt}}}
-    </div>
+        <!-- Anrede + Inhalt -->
+        <tr>
+          <td style="background: #faf7f0; border-radius: 8px; padding: 16px 18px; line-height: 1.6;">
+            Hallo {{to_name}},
+            <br>
+            {{{inhalt}}}
+          </td>
+        </tr>
 
-    <!-- Footer -->
-    <div style="margin-top: 24px; font-size: 12px; color: #a8b89a; text-align: center;">
-      🌿 Danke, dass du uns hilfst!<br>
-      Diese Nachricht wurde automatisch über die Helfer-der-Liebe-Seite gesendet.
-      <div style="font-size: 20px; margin-top: 10px;">❤️</div>
-    </div>
+        <tr><td style="height: 24px; line-height: 24px; font-size: 0;">&nbsp;</td></tr>
 
-  </div>
-</div>
+        <!-- Footer -->
+        <tr>
+          <td style="font-size: 12px; color: #a8b89a; text-align: center;">
+            🌿 Danke, dass du uns hilfst!<br>
+            Diese Nachricht wurde automatisch über die Helfer-der-Liebe-Seite gesendet.
+            <div style="font-size: 20px; margin-top: 10px;">❤️</div>
+          </td>
+        </tr>
+
+      </table>
+
+    </td>
+  </tr>
+</table>

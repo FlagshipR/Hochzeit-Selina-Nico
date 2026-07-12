@@ -1,0 +1,180 @@
+<!--
+  EmailJS-Template für die RSVP-Bestätigungsmail (template_hyexbm9),
+  genutzt von index.html und familie.html.
+  ==================================================================
+  Im EmailJS-Dashboard -> Email Templates -> Template "template_hyexbm9"
+  öffnen -> Content-Feld:
+
+    1. In den Code-/Quellcode-Modus wechseln (Symbol </> bzw. Reiter "Code").
+    2. ALLES im Editor markieren (Strg+A) und löschen, bevor der neue
+       Code eingefügt wird - sonst bleiben alte Blöcke/Reste stehen.
+    3. Diesen kompletten Code einfügen, speichern.
+
+  Änderung gegenüber der bisherigen Version: Bild war mit 260px viel zu
+  groß dargestellt. Jetzt 110px UND mit hartem width/height-HTML-Attribut
+  auf dem <img> (nicht nur CSS) - viele Mail-Clients (v.a. mobile
+  Webmail) ignorieren CSS-Breiten auf Bildern und skalieren sonst auf
+  volle Spaltenbreite hoch. Sonst inhaltlich unverändert.
+-->
+<div style="font-family: system-ui, sans-serif, Arial; font-size: 14px; color: #3a3228; max-width: 900px; margin: 0 auto;">
+
+  <style>
+    @media only screen and (max-width: 700px) {
+      .stack-column,
+      .stack-column td {
+        display: block !important;
+        width: 100% !important;
+      }
+
+      .mobile-image {
+        max-width: 110px !important;
+        width: 110px !important;
+        height: 110px !important;
+        margin-bottom: 20px !important;
+      }
+
+      .mobile-padding {
+        padding-right: 0 !important;
+      }
+    }
+  </style>
+
+  <div style="background: #f2ead8; padding: 24px; border-left: 4px solid #7a8c6e; border-radius: 10px;">
+
+    <!-- Header -->
+    <div style="font-size: 20px; font-weight: bold; color: #7a8c6e; margin-bottom: 4px;">
+      🌿 Neue RSVP-Antwort
+    </div>
+
+    <div style="color: #9c7e63; font-size: 13px; margin-bottom: 24px;">
+      Hochzeit Selina & Nicolai · 12. September 2026
+    </div>
+
+    <!-- Responsive Layout -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr class="stack-column">
+
+        <!-- Bild: feste Pixel-Größe per HTML-Attribut (nicht nur CSS),
+             damit mobile/webbasierte Mail-Clients es nicht auf volle
+             Breite hochskalieren -->
+        <td class="mobile-padding"
+            style="width: 110px; vertical-align: top; padding-right: 20px;">
+
+          <img
+            src="https://flagshipr.github.io/Hochzeit-Selina-Nico/sektglas.jpeg"
+            alt="Selina & Nicolai"
+            class="mobile-image"
+            width="110"
+            height="110"
+            style="
+              width: 110px;
+              height: 110px;
+              max-width: 110px;
+              border-radius: 12px;
+              display: block;
+              object-fit: cover;
+            "
+          >
+        </td>
+
+        <!-- Tabelle -->
+        <td style="vertical-align: top;">
+
+          <table role="presentation" style="width: 100%; border-collapse: collapse;">
+
+            <tr>
+              <td style="padding: 10px 14px; background: #faf7f0; border-bottom: 1px solid #e0d4b8; width: 140px; color: #9c7e63; font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em;">
+                Name
+              </td>
+              <td style="padding: 10px 14px; background: #faf7f0; border-bottom: 1px solid #e0d4b8; font-weight: bold;">
+                {{vorname}} {{nachname}}
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding: 10px 14px; background: #f2ead8; border-bottom: 1px solid #e0d4b8; color: #9c7e63; font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em;">
+                Antwort
+              </td>
+              <td style="padding: 10px 14px; background: #f2ead8; border-bottom: 1px solid #e0d4b8; font-weight: bold;">
+                {{zusage}}
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding: 10px 14px; background: #faf7f0; border-bottom: 1px solid #e0d4b8; color: #9c7e63; font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em;">
+                Personen
+              </td>
+              <td style="padding: 10px 14px; background: #faf7f0; border-bottom: 1px solid #e0d4b8;">
+                {{personen}}
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding: 10px 14px; background: #f2ead8; border-bottom: 1px solid #e0d4b8; color: #9c7e63; font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em;">
+                E-Mail
+              </td>
+              <td style="padding: 10px 14px; background: #f2ead8; border-bottom: 1px solid #e0d4b8;">
+                {{email}}
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding: 10px 14px; background: #faf7f0; color: #9c7e63; font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em;">
+                Anmerkungen
+              </td>
+              <td style="padding: 10px 14px; background: #faf7f0;">
+                {{anmerkungen}}
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding: 10px 14px; background: #f2ead8; border-bottom: 1px solid #e0d4b8; color: #9c7e63; font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em;">
+                Datum
+              </td>
+              <td style="padding: 10px 14px; background: #f2ead8; border-bottom: 1px solid #e0d4b8;">
+                {{datum}}
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding: 10px 14px; background: #faf7f0; border-bottom: 1px solid #e0d4b8; color: #9c7e63; font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em;">
+                Uhrzeit
+              </td>
+              <td style="padding: 10px 14px; background: #faf7f0; border-bottom: 1px solid #e0d4b8;">
+                {{uhrzeit}}
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding: 10px 14px; background: #f2ead8; border-bottom: 1px solid #e0d4b8; color: #9c7e63; font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em;">
+                Location
+              </td>
+              <td style="padding: 10px 14px; background: #f2ead8; border-bottom: 1px solid #e0d4b8;">
+                {{location}}
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding: 10px 14px; background: #faf7f0; color: #9c7e63; font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em;">
+                Website
+              </td>
+              <td style="padding: 10px 14px; background: #faf7f0;">
+                <a href="{{website}}" style="color: #7a8c6e; text-decoration: none;">
+                  {{website}}
+                </a>
+              </td>
+            </tr>
+
+          </table>
+
+        </td>
+      </tr>
+    </table>
+
+    <!-- Footer -->
+    <div style="margin-top: 24px; font-size: 12px; color: #a8b89a; text-align: center;">
+      Diese Nachricht wurde automatisch über eure Hochzeitseinladung gesendet.
+    </div>
+
+  </div>
+</div>

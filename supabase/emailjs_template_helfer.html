@@ -9,37 +9,26 @@
     Content:   dieser HTML-Code hier (Editor auf HTML/Code-Modus stellen)
 
   Nach dem Speichern die Template-ID in helfer-der-liebe.html bei
-  EMAILJS_TEMPLATE_ID eintragen (aktuell Platzhalter
-  'TEMPLATE_ID_HIER_EINTRAGEN').
+  EMAILJS_TEMPLATE_ID eintragen.
 
   Variablen, die der Code befüllt (siehe sendMail() in
   helfer-der-liebe.html): to_email, to_name, betreff, inhalt.
-  "inhalt" ist ein Freitext mit \n-Zeilenumbrüchen (deshalb
-  white-space: pre-line unten) - kein HTML darin, also keine
-  Injection-Gefahr.
+
+  WICHTIG: {{inhalt}} enthält HTML (u.a. eine Aufgaben-Tabelle) und MUSS
+  daher mit DREI geschweiften Klammern eingebunden werden: {{{inhalt}}}.
+  EmailJS escaped {{inhalt}} (zwei Klammern) sonst als sichtbaren Text
+  statt es als HTML zu rendern, siehe
+  https://www.emailjs.com/docs/user-guide/dynamic-variables-templates/
+  {{betreff}} und {{to_name}} enthalten nur reinen Text und bleiben
+  bewusst bei zwei Klammern.
+
+  Bild-Layout bewusst einspaltig (kein zweispaltiges Tabellen-Layout mit
+  Media-Query mehr) und mit HARTEM width/height-HTML-Attribut auf dem
+  <img>, nicht nur CSS - viele Mail-Clients (v.a. mobile Webmail)
+  ignorieren CSS-Breiten auf Bildern und skalieren sonst auf volle
+  Spaltenbreite hoch.
 -->
-<div style="font-family: system-ui, sans-serif, Arial; font-size: 14px; color: #3a3228; max-width: 600px; margin: 0 auto;">
-
-  <style>
-    @media only screen and (max-width: 700px) {
-      .stack-column,
-      .stack-column td {
-        display: block !important;
-        width: 100% !important;
-      }
-
-      .mobile-image {
-        max-width: 100% !important;
-        width: 100% !important;
-        height: auto !important;
-        margin-bottom: 20px !important;
-      }
-
-      .mobile-padding {
-        padding-right: 0 !important;
-      }
-    }
-  </style>
+<div style="font-family: system-ui, sans-serif, Arial; font-size: 14px; color: #3a3228; max-width: 480px; margin: 0 auto;">
 
   <div style="background: #f2ead8; padding: 24px; border-left: 4px solid #7a8c6e; border-radius: 10px;">
 
@@ -48,52 +37,31 @@
       🌿 Helfer der Liebe
     </div>
 
-    <div style="color: #9c7e63; font-size: 13px; margin-bottom: 24px;">
+    <div style="color: #9c7e63; font-size: 13px; margin-bottom: 18px;">
       Hochzeit Selina & Nicolai · 12. September 2026
     </div>
 
-    <!-- Responsive Layout -->
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-      <tr class="stack-column">
+    <!-- Bild: feste Pixel-Größe per HTML-Attribut (nicht nur CSS), damit
+         mobile/webbasierte Mail-Clients es nicht auf volle Breite ziehen -->
+    <img
+      src="https://flagshipr.github.io/Hochzeit-Selina-Nico/sektglas.jpeg"
+      alt="Selina & Nicolai"
+      width="90"
+      height="90"
+      style="width: 90px; height: 90px; max-width: 90px; border-radius: 10px; display: block; margin-bottom: 18px; object-fit: cover;"
+    >
 
-        <!-- Bild -->
-        <td class="mobile-padding"
-            style="width: 180px; vertical-align: top; padding-right: 20px;">
+    <!-- Betreff-Zeile, hervorgehoben -->
+    <div style="background: #faf7f0; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-weight: bold; color: #3a3228;">
+      {{betreff}}
+    </div>
 
-          <img
-            src="https://flagshipr.github.io/Hochzeit-Selina-Nico/sektglas.jpeg"
-            alt="Selina & Nicolai"
-            class="mobile-image"
-            style="
-              width: 180px;
-              max-width: 180px;
-              border-radius: 12px;
-              display: block;
-              height: auto;
-            "
-          >
-        </td>
-
-        <!-- Inhalt -->
-        <td style="vertical-align: top;">
-
-          <!-- Betreff-Zeile, hervorgehoben -->
-          <div style="background: #faf7f0; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-weight: bold; color: #3a3228;">
-            {{betreff}}
-          </div>
-
-          <!-- Anrede + Inhalt (HTML, daher DREIFACHE Klammern {{{inhalt}}} -
-               EmailJS escaped {{inhalt}} sonst als sichtbaren Text, siehe
-               https://www.emailjs.com/docs/user-guide/dynamic-variables-templates/ ) -->
-          <div style="background: #faf7f0; border-radius: 8px; padding: 16px 18px; line-height: 1.6;">
-            Hallo {{to_name}},
-            <br>
-            {{{inhalt}}}
-          </div>
-
-        </td>
-      </tr>
-    </table>
+    <!-- Anrede + Inhalt -->
+    <div style="background: #faf7f0; border-radius: 8px; padding: 16px 18px; line-height: 1.6;">
+      Hallo {{to_name}},
+      <br>
+      {{{inhalt}}}
+    </div>
 
     <!-- Footer -->
     <div style="margin-top: 24px; font-size: 12px; color: #a8b89a; text-align: center;">

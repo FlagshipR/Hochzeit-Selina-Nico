@@ -38,6 +38,15 @@ Der Ordner `/volume1/Hochzeitsfotos/` muss außerdem `GuestPhotos/` (Ziel der Da
 
 Bestätigter Stand: Portbasierter virtueller Host, HTTP Port `8080`, Dokument-Root `Hochzeitsfotos`, PHP-Profil 8.0, Nginx-Backend, 60s-Timeouts. Lokale URL (nur im Heimnetz erreichbar): `http://192.168.178.21:8080/slideshow.html`.
 
-## Erreichbarkeit von außen (offener Punkt)
+## Erreichbarkeit von außen
 
-QuickConnect kann laut Synology **keine eigene Web-Station-Seite durchleiten** (nur DSM und File-Station-Freigabelinks). Für den Zugriff von der Hochzeitslocation aus ist ein **Cloudflare Tunnel** geplant (zeigt auf `localhost:8080`, kein Port-Forwarding am Router nötig) – **Stand letzter Bearbeitung noch nicht eingerichtet.**
+QuickConnect kann laut Synology **keine eigene Web-Station-Seite durchleiten** (nur DSM und File-Station-Freigabelinks) – am 26.08.2026 auch praktisch bestätigt: Aufruf von `http://FLA-DX2ARN3-NAS.quickconnect.to:8080/slideshow.html` über mobile Daten schlägt fehl. Ein Cloudflare Tunnel wäre eine Option gewesen, braucht für eine stabile Adresse aber eine eigene Domain (~10€/Jahr) – verworfen zugunsten von:
+
+**Entscheidung: WireGuard-VPN statt direkter Portfreigabe.** Der Upload-Link muss von beliebigen Gästehandys erreichbar sein (bleibt über QuickConnect/Dateianforderung), aber die Slideshow-*Anzeige* braucht nur einem einzigen kontrollierten Gerät (dem Beamer-Laptop) Zugriff von außen – dafür ist ein VPN sicherer als ein offener Port: WireGuard antwortet nicht auf Anfragen ohne gültigen Schlüssel (für Portscans praktisch unsichtbar), während ein offener Webserver-Port routinemäßig von automatisierten Scannern gefunden und gegen bekannte Schwachstellen getestet wird. Ausschlaggebend: Auf derselben NAS liegt auch `GuestPhotos` mit privaten Gästefotos.
+
+Stand:
+- WireGuard auf der NAS aktiviert, VPN-Port am Router freigegeben ✓
+- **Noch offen:** Client-Profil für den Beamer-Laptop exportieren (VPN Server → WireGuard → Peer hinzufügen → `.conf` exportieren), [WireGuard-Client](https://www.wireguard.com/install/) installieren, Verbindung von außerhalb testen (mobiler Hotspot, nicht Heim-WLAN!)
+- Danach bei aktiver VPN-Verbindung ganz normal `http://192.168.178.21:8080/slideshow.html` aufrufen
+
+Verworfene Alternative (dokumentiert falls sich die Abwägung nochmal ändert): Synology DDNS (kostenlos, z. B. `xyz.synology.me`) + direkte Portfreigabe auf 8080 – am Hochzeitstag einfacher (kein VPN-Client nötig), aber der Web-Station-Port läge über Wochen offen im Internet statt nur ein VPN-Endpunkt.

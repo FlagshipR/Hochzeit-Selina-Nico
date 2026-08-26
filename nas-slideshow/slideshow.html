@@ -131,6 +131,10 @@
       }
       if (added && currentEl === null) {
         placeholder.style.display = 'none';
+        // Zufaelliger Start-Gast, damit die Anzeige nach einem (Neu-)Start
+        // nicht immer beim selben Bild anfaengt. Danach laeuft der faire
+        // Reihum-Turnus normal weiter.
+        userCursor = Math.floor(Math.random() * userOrder.length);
         showNext();
       }
     } catch (e) {

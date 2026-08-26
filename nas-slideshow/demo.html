@@ -146,8 +146,33 @@
   }
 
   const stage = document.getElementById('stage');
-  let index = 0;
   let currentEl = null;
+
+  // Ziehen ohne Zuruecklegen: Pool wird bei jedem Laden gemischt und nach
+  // jedem vollstaendigen Durchlauf neu gemischt, damit die Vorschau nicht
+  // immer in derselben Reihenfolge startet. Beim Neumischen wird verhindert,
+  // dass das zuletzt gezeigte Bild direkt wieder als erstes drankommt.
+  let pool = [];
+  let lastShown = null;
+
+  function refillPool() {
+    pool = DEMO_IMAGES.slice();
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    if (pool.length > 1 && pool[0] === lastShown) {
+      const swapWith = 1 + Math.floor(Math.random() * (pool.length - 1));
+      [pool[0], pool[swapWith]] = [pool[swapWith], pool[0]];
+    }
+  }
+
+  function nextImage() {
+    if (pool.length === 0) refillPool();
+    const url = pool.shift();
+    lastShown = url;
+    return url;
+  }
 
   // Wie in der echten Slideshow: meistens ein Bild, manchmal eine Collage
   // aus 2-3 Bildern, damit die Vorschau dieselbe Abwechslung zeigt.
@@ -162,8 +187,7 @@
     }
     const urls = [];
     for (let i = 0; i < size; i++) {
-      urls.push(DEMO_IMAGES[index % DEMO_IMAGES.length]);
-      index++;
+      urls.push(nextImage());
     }
     return urls;
   }

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Slideshow – Selina & Nico</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Jost:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root { color-scheme: dark; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; background: #0c0c0a; overflow: hidden; font-family: 'Jost', sans-serif; }
+
+  .stage { position: fixed; inset: 0; }
+  .slide { position: absolute; inset: 0; opacity: 0; transition: opacity 1.5s ease; }
+  .slide.active { opacity: 1; }
+  .slide .bg {
+    position: absolute; inset: 0;
+    background-size: cover; background-position: center;
+    filter: blur(40px) brightness(0.45);
+    transform: scale(1.15);
+  }
+  .slide img {
+    position: relative; width: 100%; height: 100%;
+    object-fit: contain;
+    animation: kenburns 9s ease-out forwards;
+  }
+  @keyframes kenburns { from { transform: scale(1); } to { transform: scale(1.06); } }
+
+  .placeholder {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; color: #f2ead8;
+  }
+  .placeholder .names { font-family: 'Cormorant Garamond', serif; font-weight: 300; font-size: clamp(2.5rem, 7vw, 4rem); }
+  .placeholder .names em { font-style: italic; color: #a8b89a; }
+  .placeholder .msg { margin-top: 18px; font-size: 1rem; font-weight: 300; letter-spacing: 0.05em; color: #d6e0cc; opacity: 0.85; }
+
+  .brand {
+    position: fixed; bottom: 22px; right: 28px;
+    font-family: 'Cormorant Garamond', serif; font-style: italic; font-weight: 300;
+    font-size: 1rem; color: rgba(255,255,255,0.55);
+    z-index: 5; letter-spacing: 0.02em;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.5);
+  }
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage"></div>
+
+<div class="placeholder" id="placeholder">
+  <div class="names"><em>Selina</em> &amp; <em>Nicolai</em></div>
+  <div class="msg">Die ersten Fotos kommen gleich &hellip;</div>
+</div>
+
+<div class="brand">Selina &amp; Nicolai · 12.09.2026</div>
+
+<script>
+  const SUPABASE_URL = 'https://jglfuixuxqonltromtax.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpnbGZ1aXh1eHFvbmx0cm9tdGF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzNzU5MjAsImV4cCI6MjA5Mzk1MTkyMH0.QthneaLOwVSjqS_2tHr2_GRSWfNE9nkY-9zEWIh0VVU';
+  const BUCKET = 'hochzeitsfotos';
+
+  const DISPLAY_SECONDS = 6;
+  const POLL_SECONDS = 12;
+
+  const seen = new Set();
+  const queue = [];
+  let currentEl = null;
+  let showTimer = null;
+
+  const stage = document.getElementById('stage');
+  const placeholder = document.getElementById('placeholder');
+
+  function publicUrl(path) {
+    return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`;
+  }
+
+  async function poll() {
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/fotos?select=storage_path,created_at&order=created_at.asc`,
+        { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }
+      );
+      if (!res.ok) return;
+      const rows = await res.json();
+      let added = false;
+      for (const row of rows) {
+        const url = publicUrl(row.storage_path);
+        if (!seen.has(url)) {
+          seen.add(url);
+          queue.push(url);
+          added = true;
+        }
+      }
+      if (added && currentEl === null) {
+        placeholder.style.display = 'none';
+        showNext();
+      }
+    } catch (e) {
+      // Netzwerk-Hänger: naechster Poll versucht's erneut
+    }
+  }
+
+  function showNext() {
+    if (queue.length === 0) return;
+    clearTimeout(showTimer);
+
+    const url = queue.shift();
+    queue.push(url);
+
+    const slide = document.createElement('div');
+    slide.className = 'slide';
+
+    const bg = document.createElement('div');
+    bg.className = 'bg';
+    bg.style.backgroundImage = `url("${url}")`;
+
+    const img = document.createElement('img');
+    img.src = url;
+    img.onerror = () => { slide.remove(); showNext(); };
+
+    slide.append(bg, img);
+    stage.appendChild(slide);
+    requestAnimationFrame(() => slide.classList.add('active'));
+
+    const prev = currentEl;
+    currentEl = slide;
+    if (prev) setTimeout(() => prev.remove(), 1600);
+
+    showTimer = setTimeout(showNext, DISPLAY_SECONDS * 1000);
+  }
+
+  poll();
+  setInterval(poll, POLL_SECONDS * 1000);
+</script>
+
+</body>
+</html>

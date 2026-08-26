@@ -75,16 +75,60 @@
 <div class="stage" id="stage"></div>
 <div class="brand">Selina &amp; Nicolai · 12.09.2026</div>
 
+<!-- Gleicher HEIC-Weg wie slideshow.html (siehe dort fuer die Begruendung
+     gegen heic2any): libheif-js lokal eingebunden, kein CDN. -->
+<script src="libheif-bundle.js"></script>
 <script>
   // Demo: feste Bilderliste statt list.php-Abfrage wie in der echten Slideshow.
-  // Eigene Beispielbilder ergaenzen: Pfad hier eintragen (relativ zu diesem Ordner).
+  // Eigene Beispielbilder ergaenzen: Datei (auch .heic/.heif) in den
+  // sample/-Ordner legen und hier eintragen (Ordner kann nicht automatisch
+  // durchsucht werden, da GitHub Pages rein statisch ist, ohne
+  // serverseitiges Directory-Listing).
   const DEMO_IMAGES = [
-    '../foto.jpeg',
-    '../foto2.jpeg',
-    '../sektglas.jpeg',
+    'sample/foto.jpeg',
+    'sample/foto2.jpeg',
+    'sample/sektglas.jpeg',
+    'sample/1829.HEIC',
   ];
   const DISPLAY_SECONDS = 6;
   const KB_VARIANTS = ['kb-zoom-in', 'kb-zoom-out', 'kb-pan-left', 'kb-pan-right'];
+  const HEIC_RE = /\.(heic|heif)$/i;
+  const resolvedCache = new Map();
+
+  let heifModulePromise = null;
+  function getHeifModule() {
+    if (!heifModulePromise) heifModulePromise = libheif();
+    return heifModulePromise;
+  }
+
+  async function resolveUrl(url) {
+    if (!HEIC_RE.test(url)) return url;
+    if (resolvedCache.has(url)) return resolvedCache.get(url);
+    try {
+      const mod = await getHeifModule();
+      const buf = new Uint8Array(await (await fetch(url)).arrayBuffer());
+      const decoder = new mod.HeifDecoder();
+      const [image] = decoder.decode(buf);
+      const width = image.get_width(), height = image.get_height();
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      const raw = await new Promise((resolve, reject) => {
+        image.display(ctx.createImageData(width, height), (d) => d ? resolve(d) : reject(new Error('display failed')));
+      });
+      ctx.putImageData(raw, 0, 0);
+
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+      const objectUrl = URL.createObjectURL(blob);
+      resolvedCache.set(url, objectUrl);
+      return objectUrl;
+    } catch (e) {
+      resolvedCache.set(url, null);
+      return null;
+    }
+  }
 
   const stage = document.getElementById('stage');
   let index = 0;
@@ -125,12 +169,18 @@
     return cell;
   }
 
-  function showNext() {
+  async function showNext() {
     const urls = pickGroup();
+    const resolved = (await Promise.all(urls.map(resolveUrl))).filter(u => u !== null);
+    if (resolved.length === 0) {
+      setTimeout(showNext, 500);
+      return;
+    }
+
     const slide = document.createElement('div');
-    slide.className = `slide layout-${urls.length}`;
+    slide.className = `slide layout-${resolved.length}`;
     slide.style.setProperty('--kb-duration', `${DISPLAY_SECONDS + 3}s`);
-    urls.forEach(url => slide.appendChild(buildCell(url)));
+    resolved.forEach(url => slide.appendChild(buildCell(url)));
 
     stage.appendChild(slide);
     requestAnimationFrame(() => slide.classList.add('active'));
@@ -139,7 +189,7 @@
     currentEl = slide;
     if (prev) setTimeout(() => prev.remove(), 1600);
 
-    const displaySeconds = DISPLAY_SECONDS + (urls.length - 1) * 1.5;
+    const displaySeconds = DISPLAY_SECONDS + (resolved.length - 1) * 1.5;
     setTimeout(showNext, displaySeconds * 1000);
   }
 

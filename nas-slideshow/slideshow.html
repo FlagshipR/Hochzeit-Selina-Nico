@@ -85,11 +85,23 @@
 
 <div class="brand">Selina &amp; Nicolai · 12.09.2026</div>
 
+<!-- Serverseitige HEIC-Konvertierung ist auf dieser NAS nicht moeglich (weder
+     ffmpeg noch ImageMagick koennen es hier trotz vorhandener Binaries) -
+     daher Konvertierung im Browser via libheif-js (buendelt libheif als WASM,
+     keine Netzwerkabhaengigkeit zur Laufzeit). Lokal eingebunden statt per
+     CDN, damit es auch bei wackligem WLAN am Hochzeitsort funktioniert.
+     Bewusst nicht der bequemere heic2any-Wrapper: der buendelt eine veraltete
+     libheif-Version, die an echten iPhone-Fotos mit "format not supported"
+     scheiterte - dieses Bundle (aktuelle libheif-js-Version) dekodiert dieselben
+     Dateien einwandfrei. -->
+<script src="libheif-bundle.js"></script>
 <script>
   const LIST_URL = 'list.php';
   const DISPLAY_SECONDS = 6;
   const POLL_SECONDS = 12;
   const KB_VARIANTS = ['kb-zoom-in', 'kb-zoom-out', 'kb-pan-left', 'kb-pan-right'];
+  const HEIC_RE = /\.(heic|heif)$/i;
+  const resolvedCache = new Map(); // Original-URL -> konvertierte Blob-URL (oder null bei Fehler)
 
   const seen = new Set();
   const byUser = new Map();   // user -> { photos: [url, ...], pos: 0 }
@@ -169,6 +181,47 @@
     return urls;
   }
 
+  // libheif ist ein Emscripten-Modul (async Factory-Funktion) - einmal
+  // initialisieren und das Promise cachen statt bei jedem Bild neu zu laden.
+  let heifModulePromise = null;
+  function getHeifModule() {
+    if (!heifModulePromise) heifModulePromise = libheif();
+    return heifModulePromise;
+  }
+
+  // HEIC/HEIF (iPhone-Standardformat) kann kein Browser direkt anzeigen.
+  // Wird einmal pro Datei per libheif-js dekodiert, auf Canvas gezeichnet und
+  // als JPEG-Blob-URL zwischengespeichert - andere Formate laufen unveraendert
+  // durch.
+  async function resolveUrl(url) {
+    if (!HEIC_RE.test(url)) return url;
+    if (resolvedCache.has(url)) return resolvedCache.get(url);
+    try {
+      const mod = await getHeifModule();
+      const buf = new Uint8Array(await (await fetch(url)).arrayBuffer());
+      const decoder = new mod.HeifDecoder();
+      const [image] = decoder.decode(buf);
+      const width = image.get_width(), height = image.get_height();
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      const raw = await new Promise((resolve, reject) => {
+        image.display(ctx.createImageData(width, height), (d) => d ? resolve(d) : reject(new Error('display failed')));
+      });
+      ctx.putImageData(raw, 0, 0);
+
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+      const objectUrl = URL.createObjectURL(blob);
+      resolvedCache.set(url, objectUrl);
+      return objectUrl;
+    } catch (e) {
+      resolvedCache.set(url, null); // defekte/nicht konvertierbare Datei nicht bei jeder Runde erneut versuchen
+      return null;
+    }
+  }
+
   function buildCell(url) {
     const cell = document.createElement('div');
     cell.className = 'cell';
@@ -186,15 +239,24 @@
     return cell;
   }
 
-  function showNext() {
+  async function showNext() {
     const urls = pickGroup();
     if (urls.length === 0) return;
     clearTimeout(showTimer);
 
+    // Konvertierung laeuft im Hintergrund waehrend das vorige Bild noch
+    // steht - nur beim allerersten Mal pro HEIC-Datei spuerbar, danach
+    // liefert der Cache sofort.
+    const resolved = (await Promise.all(urls.map(resolveUrl))).filter(u => u !== null);
+    if (resolved.length === 0) {
+      showTimer = setTimeout(showNext, 500);
+      return;
+    }
+
     const slide = document.createElement('div');
-    slide.className = `slide layout-${urls.length}`;
+    slide.className = `slide layout-${resolved.length}`;
     slide.style.setProperty('--kb-duration', `${DISPLAY_SECONDS + 3}s`);
-    urls.forEach(url => slide.appendChild(buildCell(url)));
+    resolved.forEach(url => slide.appendChild(buildCell(url)));
 
     stage.appendChild(slide);
     requestAnimationFrame(() => slide.classList.add('active'));
@@ -203,7 +265,7 @@
     currentEl = slide;
     if (prev) setTimeout(() => prev.remove(), 1600);
 
-    const displaySeconds = DISPLAY_SECONDS + (urls.length - 1) * 1.5;
+    const displaySeconds = DISPLAY_SECONDS + (resolved.length - 1) * 1.5;
     showTimer = setTimeout(showNext, displaySeconds * 1000);
   }
 

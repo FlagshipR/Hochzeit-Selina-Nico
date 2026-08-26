@@ -7,7 +7,9 @@
 header('Content-Type: application/json; charset=utf-8');
 
 $baseDir = __DIR__ . '/GuestPhotos';
-$allowedExt = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+// heic/heif: Browser koennen das nicht anzeigen, slideshow.html konvertiert
+// es client-seitig per heic2any (siehe dort) - hier nur mitlisten.
+$allowedExt = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'heif'];
 
 $images = [];
 

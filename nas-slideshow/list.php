@@ -12,9 +12,16 @@ $allowedExt = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
 $images = [];
 
 if (is_dir($baseDir)) {
-    $iterator = new RecursiveIteratorIterator(
-        new RecursiveDirectoryIterator($baseDir, FilesystemIterator::SKIP_DOTS)
+    // Synology legt in jedem Ordner automatisch ein verstecktes @eaDir mit
+    // selbst generierten Thumbnails an (z.B. sobald der Ordner in File Station
+    // geoeffnet wurde). SKIP_DOTS ueberspringt nur "." und "..", nicht @eaDir -
+    // ohne diesen Filter taucht jedes Foto zusaetzlich als niedrig aufgeloestes
+    // "Duplikat" auf (mit spaeterem mtime, erscheint also nach dem Original).
+    $filtered = new RecursiveCallbackFilterIterator(
+        new RecursiveDirectoryIterator($baseDir, FilesystemIterator::SKIP_DOTS),
+        fn($current) => !($current->isDir() && str_starts_with($current->getFilename(), '@'))
     );
+    $iterator = new RecursiveIteratorIterator($filtered);
 
     foreach ($iterator as $file) {
         if (!$file->isFile()) continue;

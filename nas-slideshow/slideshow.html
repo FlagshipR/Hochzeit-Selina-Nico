@@ -48,48 +48,42 @@
 <div class="stage" id="stage"></div>
 
 <div class="placeholder" id="placeholder">
-  <div class="names"><em>Selina</em> &amp; <em>Nicolai</em></div>
+  <div class="names"><em>Selina</em> & <em>Nicolai</em></div>
   <div class="msg">Die ersten Fotos kommen gleich &hellip;</div>
 </div>
 
 <div class="brand">Selina &amp; Nicolai · 12.09.2026</div>
 
 <script>
-  const SUPABASE_URL = 'https://jglfuixuxqonltromtax.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpnbGZ1aXh1eHFvbmx0cm9tdGF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzNzU5MjAsImV4cCI6MjA5Mzk1MTkyMH0.QthneaLOwVSjqS_2tHr2_GRSWfNE9nkY-9zEWIh0VVU';
-  const BUCKET = 'hochzeitsfotos';
-
+  const LIST_URL = 'list.php';
   const DISPLAY_SECONDS = 6;
   const POLL_SECONDS = 12;
 
   const seen = new Set();
-  const queue = [];
+  const byUser = new Map();   // user -> { photos: [url, ...], pos: 0 }
+  const userOrder = [];       // Reihenfolge, in der Gaeste zum ersten Mal auftauchen
+  let userCursor = 0;
   let currentEl = null;
   let showTimer = null;
 
   const stage = document.getElementById('stage');
   const placeholder = document.getElementById('placeholder');
 
-  function publicUrl(path) {
-    return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`;
-  }
-
   async function poll() {
     try {
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/fotos?select=storage_path,created_at&order=created_at.asc`,
-        { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }
-      );
+      const res = await fetch(`${LIST_URL}?_=${Date.now()}`);
       if (!res.ok) return;
-      const rows = await res.json();
+      const images = await res.json();
       let added = false;
-      for (const row of rows) {
-        const url = publicUrl(row.storage_path);
-        if (!seen.has(url)) {
-          seen.add(url);
-          queue.push(url);
-          added = true;
+      for (const img of images) {
+        if (seen.has(img.url)) continue;
+        seen.add(img.url);
+        added = true;
+        if (!byUser.has(img.user)) {
+          byUser.set(img.user, { photos: [], pos: 0 });
+          userOrder.push(img.user);
         }
+        byUser.get(img.user).photos.push(img.url);
       }
       if (added && currentEl === null) {
         placeholder.style.display = 'none';
@@ -100,12 +94,26 @@
     }
   }
 
-  function showNext() {
-    if (queue.length === 0) return;
-    clearTimeout(showTimer);
+  // Reihum ein Foto pro Gast statt streng chronologisch - so blockiert niemand,
+  // der viele Fotos auf einmal hochlaedt, die Anzeige der anderen Gaeste.
+  function pickNext() {
+    for (let i = 0; i < userOrder.length; i++) {
+      const user = userOrder[userCursor];
+      userCursor = (userCursor + 1) % userOrder.length;
+      const bucket = byUser.get(user);
+      if (bucket.photos.length > 0) {
+        const url = bucket.photos[bucket.pos % bucket.photos.length];
+        bucket.pos++;
+        return url;
+      }
+    }
+    return null;
+  }
 
-    const url = queue.shift();
-    queue.push(url);
+  function showNext() {
+    const url = pickNext();
+    if (url === null) return;
+    clearTimeout(showTimer);
 
     const slide = document.createElement('div');
     slide.className = 'slide';

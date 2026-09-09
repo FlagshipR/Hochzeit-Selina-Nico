@@ -220,11 +220,22 @@ $serverJob = Start-Job -Name 'nas-slideshow-server' -ScriptBlock {
 
     $listener = New-Object System.Net.HttpListener
     $listener.Prefixes.Add("http://localhost:$port/")
-    try {
-        $listener.Start()
-    } catch {
-        Write-Output "SERVER-FEHLER: konnte Port $port nicht oeffnen ($_). Ggf. als Administrator: netsh http add urlacl url=http://localhost:$port/ user=$env:USERNAME"
-        return
+
+    # Ein vorheriger Lauf (z.B. gerade erst per Stop-ScheduledTask beendet)
+    # gibt den Port manchmal nicht sofort frei - ein paar Sekunden Retry statt
+    # gleich aufzugeben, das behebt den ueblichen Fall von selbst.
+    $started = $false
+    for ($attempt = 1; $attempt -le 5 -and -not $started; $attempt++) {
+        try {
+            $listener.Start()
+            $started = $true
+        } catch {
+            if ($attempt -eq 5) {
+                Write-Output "SERVER-FEHLER: konnte Port $port nach $attempt Versuchen nicht oeffnen ($_). Ggf. als Administrator: netsh http add urlacl url=http://localhost:$port/ user=$env:USERNAME"
+                return
+            }
+            Start-Sleep -Seconds 2
+        }
     }
 
     $rootFull = [System.IO.Path]::GetFullPath($root)

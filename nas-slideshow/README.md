@@ -32,6 +32,21 @@ Was dabei passiert:
 
 Getestet am 09.09.2026 gegen die echten Gästefotos (361 synct, 2 Duplikate korrekt erkannt und übersprungen).
 
+### Automatischer Start (`install-autostart.ps1`)
+
+`run-local.ps1` läuft nur, solange sein PowerShell-Fenster offen ist – kein Hintergrunddienst von Haus aus. [`install-autostart.ps1`](install-autostart.ps1) richtet dafür eine Windows-Aufgabenplanung ein, die es bei jedem Login automatisch versteckt im Hintergrund startet:
+
+```powershell
+.\install-autostart.ps1    # einmalig einrichten, startet auch gleich
+.\uninstall-autostart.ps1  # rueckgaengig machen
+```
+
+- Läuft auch im Akkubetrieb weiter, kein Zeitlimit (Task Scheduler würde eine Dauerschleife sonst nach 3 Tagen killen), startet bei Absturz automatisch neu (3x, 1 Min. Abstand).
+- Ausgabe landet in `Downloads\Hochzeitsfotos-Sync.log` statt in einem sichtbaren Fenster.
+- Named Task: `Hochzeit-Slideshow-Sync` (Aufgabenplanung → Aufgabenplanungsbibliothek, falls manuell nachschauen).
+
+**Bekannte Randbedingung:** Ein `Stop-ScheduledTask` gefolgt von einem sofortigen Neustart kann kurz mit "Port bereits belegt" fehlschlagen, falls der vorherige Server-Prozess den Port noch nicht freigegeben hat – `run-local.ps1` versucht das Binden seit dem 09.09.2026 automatisch bis zu 5x mit 2s Abstand, das behebt den Normalfall von selbst.
+
 ### Alternative/Fallback: direkt auf der NAS via Web Station
 
 Falls der lokale Modus am Tag selbst aus irgendeinem Grund nicht geht, funktioniert der ursprüngliche Ansatz weiterhin: [`list.php`](list.php) durchsucht `GuestPhotos/` live und liefert JSON, `slideshow.html` kann das per `LIST_URL` auch direkt abfragen (aktuell auf `cache/list.json` für den lokalen Modus umgestellt – für diesen Fallback müsste das temporär zurückgeändert werden). Ohne lokalen Cache, dafür ohne Sync-Skript. Setup siehe unten.

@@ -58,7 +58,17 @@ $knownHashes = New-Object 'System.Collections.Generic.HashSet[string]'
 $images = New-Object 'System.Collections.Generic.List[object]'
 if (Test-Path $listJsonPath) {
     try {
-        $existing = @(Get-Content $listJsonPath -Raw | ConvertFrom-Json)
+        # WICHTIG: [object[]]$x = ... verwenden, NICHT $x = @(... | ConvertFrom-Json).
+        # ConvertFrom-Json gibt sein Ergebnis als EIN Pipeline-Objekt aus statt die
+        # Array-Elemente einzeln zu entrollen - @() sammelt dann nur dieses eine
+        # emittierte Objekt ein und verpackt das ganze (bereits korrekte) Array
+        # nochmal in ein 1-Element-Array. Live entdeckt: dadurch lud ein Neustart
+        # nur 1 "Eintrag" (das gesamte alte Array als ein Objekt) statt der
+        # tatsaechlichen Fotoliste - list.json wurde dadurch beim naechsten Save
+        # auf einen Bruchteil der echten Fotos zusammengestutzt, obwohl die
+        # Dateien selbst im Cache unangetastet blieben. [object[]]-Typzwang bei
+        # der Zuweisung behandelt 0/1/N Elemente stattdessen korrekt.
+        [object[]]$existing = Get-Content $listJsonPath -Raw | ConvertFrom-Json
         foreach ($e in $existing) {
             $images.Add($e)
             if ($e.hash) { [void]$knownHashes.Add($e.hash) }

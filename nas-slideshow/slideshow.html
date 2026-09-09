@@ -96,7 +96,10 @@
      Dateien einwandfrei. -->
 <script src="libheif-bundle.js"></script>
 <script>
-  const LIST_URL = 'list.php';
+  // Lokale, von run-local.ps1 erzeugte Liste statt list.php - die Slideshow
+  // liest nur noch aus dem lokalen Cache, nie live von der NAS. So laeuft
+  // sie weiter, selbst wenn VPN/Netzwerk zur NAS zwischendurch abbricht.
+  const LIST_URL = 'cache/list.json';
   const DISPLAY_SECONDS = 6;
   const POLL_SECONDS = 12;
   const KB_VARIANTS = ['kb-zoom-in', 'kb-zoom-out', 'kb-pan-left', 'kb-pan-right'];
@@ -124,10 +127,15 @@
         seen.add(img.url);
         added = true;
         if (!byUser.has(img.user)) {
-          byUser.set(img.user, { photos: [], pos: 0 });
+          byUser.set(img.user, { all: [], bag: [], lastShown: null });
           userOrder.push(img.user);
         }
-        byUser.get(img.user).photos.push(img.url);
+        const bucket = byUser.get(img.user);
+        bucket.all.push(img.url);
+        // Sofort in die aktuelle Mischung aufnehmen statt nur hinten
+        // anzuhaengen - neue Fotos sollen zeitnah drankommen, nicht erst
+        // nachdem alle alten einmal durch sind.
+        bucket.bag.push(img.url);
       }
       if (added && currentEl === null) {
         placeholder.style.display = 'none';
@@ -142,16 +150,34 @@
     }
   }
 
-  // Reihum ein Foto pro Gast statt streng chronologisch - so blockiert niemand,
-  // der viele Fotos auf einmal hochlaedt, die Anzeige der anderen Gaeste.
+  // Ziehen ohne Zuruecklegen pro Gast: eigene Fotos in zufaelliger statt
+  // chronologischer Reihenfolge, Pool wird nach jedem Durchlauf neu
+  // gemischt (verhindert, dass das zuletzt gezeigte Bild dieses Gastes
+  // gleich wieder als erstes drankommt). Reihum ueber die Gaeste selbst
+  // bleibt bestehen - so blockiert niemand, der viele Fotos auf einmal
+  // hochlaedt, die Anzeige der anderen, und es laufen nie zwei Fotos
+  // derselben Person direkt hintereinander (bei >=2 aktiven Gaesten).
+  function refillBag(bucket) {
+    bucket.bag = bucket.all.slice();
+    for (let i = bucket.bag.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [bucket.bag[i], bucket.bag[j]] = [bucket.bag[j], bucket.bag[i]];
+    }
+    if (bucket.bag.length > 1 && bucket.bag[0] === bucket.lastShown) {
+      const swapWith = 1 + Math.floor(Math.random() * (bucket.bag.length - 1));
+      [bucket.bag[0], bucket.bag[swapWith]] = [bucket.bag[swapWith], bucket.bag[0]];
+    }
+  }
+
   function pickOne() {
     for (let i = 0; i < userOrder.length; i++) {
       const user = userOrder[userCursor];
       userCursor = (userCursor + 1) % userOrder.length;
       const bucket = byUser.get(user);
-      if (bucket.photos.length > 0) {
-        const url = bucket.photos[bucket.pos % bucket.photos.length];
-        bucket.pos++;
+      if (bucket.all.length > 0) {
+        if (bucket.bag.length === 0) refillBag(bucket);
+        const url = bucket.bag.shift();
+        bucket.lastShown = url;
         return url;
       }
     }
@@ -160,7 +186,7 @@
 
   function totalAvailable() {
     let n = 0;
-    for (const b of byUser.values()) n += b.photos.length;
+    for (const b of byUser.values()) n += b.all.length;
     return n;
   }
 

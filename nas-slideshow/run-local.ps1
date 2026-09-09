@@ -16,10 +16,13 @@
   echten Gaestefotos nie versehentlich in dieses oeffentliche Repo geraten.
 
 .PARAMETER IntervalSeconds
-  Wie oft neu synchronisiert wird (Default 5 Minuten - unveraenderte Dateien
+  Wie oft neu synchronisiert wird (Default 12 Minuten - unveraenderte Dateien
   werden anhand von Groesse+Aenderungsdatum erkannt und uebersprungen, ohne
   erneut gehasht/kopiert zu werden, ein kuerzeres Intervall kostet also vor
-  allem zusaetzliche Verzeichnis-Abfragen gegen die NAS).
+  allem zusaetzliche Verzeichnis-Abfragen gegen die NAS). Laeuft in einer
+  Dauerschleife, die nie von selbst endet - unabhaengig davon, ob seit dem
+  letzten Login Minuten oder Tage vergangen sind, nicht nur einmal beim
+  Start.
 
 .PARAMETER MinAgeSeconds
   Dateien, die vor kuerzerer Zeit geaendert wurden, werden uebersprungen -
@@ -35,7 +38,7 @@
 param(
     [string]$Source = "\\FLANAS\Hochzeitsfotos\GuestPhotos",
     [string]$CacheRoot = (Join-Path $env:USERPROFILE 'Downloads\Hochzeitsfotos-Cache'),
-    [int]$IntervalSeconds = 300,
+    [int]$IntervalSeconds = 720,
     [int]$MinAgeSeconds = 10,
     [int]$Port = 8090
 )

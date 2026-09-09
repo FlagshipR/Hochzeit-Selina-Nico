@@ -23,7 +23,7 @@ HEIC-Fotos (iPhone-Standardformat) werden client-seitig im Browser per `libheif-
 Dann im Browser: `http://localhost:8090/slideshow.html`
 
 Was dabei passiert:
-- Alle 5 Minuten (`-IntervalSeconds`) wird `GuestPhotos` neu durchsucht; unveränderte Dateien (Größe+Änderungsdatum bereits im Manifest bekannt) werden übersprungen statt erneut geprüft.
+- Alle 12 Minuten (`-IntervalSeconds`) wird `GuestPhotos` neu durchsucht – dauerhaft, in einer Schleife, die nie von selbst endet (nicht nur einmal beim Start); unveränderte Dateien (Größe+Änderungsdatum bereits im Manifest bekannt) werden übersprungen statt erneut geprüft.
 - Jede neue Datei wird per **SHA-256-Inhalts-Hash** auf Duplikate geprüft (erkennt auch von verschiedenen Gästen hochgeladene identische Fotos, nicht nur gleiche Dateinamen) und nach `Downloads\Hochzeitsfotos-Cache\<Gast>\...` kopiert.
 - Dateien, die vor weniger als 10 Sekunden geändert wurden (`-MinAgeSeconds`), werden übersprungen – Schutz gegen einen noch nicht fertig hochgeladenen Gast-Upload.
 - `slideshow.html` liest nur noch aus `Downloads\Hochzeitsfotos-Cache\list.json` (lokal, nie live von der NAS) – einmal heruntergeladene Fotos laufen weiter, auch wenn VPN/Verbindung zur NAS zwischendurch abbricht.

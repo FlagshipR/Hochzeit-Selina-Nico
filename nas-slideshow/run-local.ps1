@@ -146,7 +146,27 @@ function Sync-Once {
         }
 
         try {
-            $hash = (Get-FileHash -LiteralPath $f.FullName -Algorithm SHA256).Hash
+            # Hash ueber den Dateiinhalt OHNE die letzten 8 KB statt der ganzen
+            # Datei: Handy-/Galerie-Apps (Google Fotos, Pixel Motion Photos,
+            # Samsung Burst-Cover, ...) haengen beim erneuten Export/Teilen
+            # oft eine neue, eindeutige ID an - Bild- und Videoinhalt bleiben
+            # dabei zu 100% gleich, nur ein winziger Trailer aendert sich.
+            # Beobachtet z.B. bei Julias PXL_*.MP.jpg/.MP_1.jpg (nur 32 von
+            # 5.741.837 Bytes unterschiedlich, ganz am Ende). Ein vollstaendiger
+            # Hash haette solche Fast-Duplikate verpasst; 8 KB sind bei
+            # mehrere-MB-Fotos ein verschwindend kleiner Anteil, das Risiko
+            # zwei tatsaechlich unterschiedliche Fotos faelschlich als
+            # Duplikat zu erkennen ist praktisch null.
+            $tailMargin = 8192
+            $bytes = [System.IO.File]::ReadAllBytes($f.FullName)
+            $bodyLength = if ($bytes.Length -gt $tailMargin) { $bytes.Length - $tailMargin } else { $bytes.Length }
+            $sha256 = [System.Security.Cryptography.SHA256]::Create()
+            try {
+                $hashBytes = $sha256.ComputeHash($bytes, 0, $bodyLength)
+            } finally {
+                $sha256.Dispose()
+            }
+            $hash = [BitConverter]::ToString($hashBytes) -replace '-', ''
         } catch {
             Write-Warning "$(Get-Date -Format 'HH:mm:ss')  Hash fehlgeschlagen fuer $relSource - ueberspringe: $_"
             continue

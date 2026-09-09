@@ -217,14 +217,23 @@ function Sync-Once {
     }
 }
 
-# --- Lokaler statischer Webserver (eigener Hintergrund-Prozess) mit zwei
+# --- Lokaler statischer Webserver als eigener Runspace im selben Prozess
+#     (NICHT als Start-Job-Kindprozess - siehe Begruendung unten) mit zwei
 #     Wurzeln: $root (nas-slideshow/ im Repo - slideshow.html,
 #     libheif-bundle.js) fuer alles, und $destRoot (Downloads/... - Bilder +
 #     list.json) fuer alles unter "/cache/". Browser blockieren fetch() auf
 #     file://, daher noetig - bewusst per HttpListener in reinem PowerShell
 #     gebaut statt z.B. python -m http.server, damit auf dem Beamer-Laptop
-#     nichts installiert sein muss ausser Windows selbst. ---
-$serverJob = Start-Job -Name 'nas-slideshow-server' -ScriptBlock {
+#     nichts installiert sein muss ausser Windows selbst.
+#
+#     Start-Job wurde ausgetauscht, weil es unter der Aufgabenplanung
+#     (versteckt, nicht-interaktiv, siehe install-autostart.ps1) beobachtet
+#     wurde, seinen Kindprozess manchmal gar nicht erst zu starten - ohne
+#     jede Fehlermeldung, der Sync lief normal weiter, nur Port 8090 blieb
+#     unbelegt. Ein Runspace laeuft als Thread im selben Prozess statt als
+#     separater Kindprozess: kann unter dieser Bedingung nicht "verloren
+#     gehen" und stirbt automatisch mit, wenn der Hauptprozess endet. ---
+$serverScript = {
     param($root, $cacheRoot, $port)
 
     $mime = @{
@@ -254,7 +263,7 @@ $serverJob = Start-Job -Name 'nas-slideshow-server' -ScriptBlock {
             $started = $true
         } catch {
             if ($attempt -eq 5) {
-                Write-Output "SERVER-FEHLER: konnte Port $port nach $attempt Versuchen nicht oeffnen ($_). Ggf. als Administrator: netsh http add urlacl url=http://localhost:$port/ user=$env:USERNAME"
+                Write-Warning "SERVER-FEHLER: konnte Port $port nach $attempt Versuchen nicht oeffnen ($_). Ggf. als Administrator: netsh http add urlacl url=http://localhost:$port/ user=$env:USERNAME"
                 return
             }
             Start-Sleep -Seconds 2
@@ -303,11 +312,17 @@ $serverJob = Start-Job -Name 'nas-slideshow-server' -ScriptBlock {
             $ctx.Response.OutputStream.Close()
         }
     }
-} -ArgumentList $root, $destRoot, $Port
+}
+
+$serverRunspace = [runspacefactory]::CreateRunspace()
+$serverRunspace.Open()
+$serverPs = [powershell]::Create()
+$serverPs.Runspace = $serverRunspace
+[void]$serverPs.AddScript($serverScript).AddArgument($root).AddArgument($destRoot).AddArgument($Port)
+$serverHandle = $serverPs.BeginInvoke()
 
 Start-Sleep -Milliseconds 700
-$jobOutput = Receive-Job -Job $serverJob -ErrorAction SilentlyContinue
-if ($jobOutput) { Write-Warning $jobOutput }
+foreach ($w in $serverPs.Streams.Warning) { Write-Warning $w.Message }
 
 Write-Host "======================================================"
 Write-Host " Diashow lokal: http://localhost:$Port/slideshow.html"
@@ -323,6 +338,8 @@ try {
     }
 } finally {
     Write-Host "Beende lokalen Server..."
-    Stop-Job -Job $serverJob -ErrorAction SilentlyContinue | Out-Null
-    Remove-Job -Job $serverJob -Force -ErrorAction SilentlyContinue | Out-Null
+    try { $serverPs.Stop() } catch {}
+    $serverPs.Dispose()
+    $serverRunspace.Close()
+    $serverRunspace.Dispose()
 }

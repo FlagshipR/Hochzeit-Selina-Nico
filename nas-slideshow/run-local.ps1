@@ -31,16 +31,30 @@
 .PARAMETER Port
   Lokaler Port fuer die Diashow (http://localhost:<Port>/slideshow.html).
 
+.PARAMETER AllowRemote
+  Server auch fuer andere Geraete im (V)LAN erreichbar machen statt nur fuer
+  diesen Rechner selbst - z.B. damit ein Geraet vor Ort (Fire-TV-Stick per
+  WireGuard-VPN ins Heimnetz, oder ein anderes Geraet im selben WLAN) die
+  Diashow direkt aufrufen kann, waehrend dieser Rechner zuhause im Heimnetz
+  bleibt. Braucht einmalig vorab (als Administrator):
+    netsh http add urlacl url=http://+:8090/ user=DOMAIN\Username
+    New-NetFirewallRule -DisplayName "Hochzeit-Slideshow" -Direction Inbound -Protocol TCP -LocalPort 8090 -Action Allow
+  (Portnummer anpassen falls -Port abweicht). Ohne diese zwei Schritte
+  schlaegt das Binden mit -AllowRemote fehl bzw. bleibt von aussen
+  unerreichbar, auch wenn der Prozess selbst laeuft.
+
 .EXAMPLE
   .\run-local.ps1
   .\run-local.ps1 -Source "\\FLANAS\Hochzeitsfotos\GuestPhotos" -Port 8090
+  .\run-local.ps1 -AllowRemote
 #>
 param(
     [string]$Source = "\\FLANAS\Hochzeitsfotos\GuestPhotos",
     [string]$CacheRoot = (Join-Path $env:USERPROFILE 'Downloads\Hochzeitsfotos-Cache'),
     [int]$IntervalSeconds = 720,
     [int]$MinAgeSeconds = 10,
-    [int]$Port = 8090
+    [int]$Port = 8090,
+    [switch]$AllowRemote
 )
 
 $ErrorActionPreference = 'Stop'
@@ -244,7 +258,7 @@ function Sync-Once {
 #     separater Kindprozess: kann unter dieser Bedingung nicht "verloren
 #     gehen" und stirbt automatisch mit, wenn der Hauptprozess endet. ---
 $serverScript = {
-    param($root, $cacheRoot, $port)
+    param($root, $cacheRoot, $port, $allowRemote)
 
     $mime = @{
         '.html' = 'text/html; charset=utf-8'
@@ -261,7 +275,12 @@ $serverScript = {
     }
 
     $listener = New-Object System.Net.HttpListener
-    $listener.Prefixes.Add("http://localhost:$port/")
+    # "+" bindet auf allen Netzwerkschnittstellen statt nur localhost - noetig
+    # damit z.B. ein per VPN eingewaehltes Geraet den Server erreicht. Braucht
+    # vorab einmalig "netsh http add urlacl" + eine Firewall-Freigabe (siehe
+    # -AllowRemote Hilfetext), sonst schlaegt Start() weiter unten fehl.
+    $prefix = if ($allowRemote) { "http://+:$port/" } else { "http://localhost:$port/" }
+    $listener.Prefixes.Add($prefix)
 
     # Ein vorheriger Lauf (z.B. gerade erst per Stop-ScheduledTask beendet)
     # gibt den Port manchmal nicht sofort frei - ein paar Sekunden Retry statt
@@ -328,7 +347,7 @@ $serverRunspace = [runspacefactory]::CreateRunspace()
 $serverRunspace.Open()
 $serverPs = [powershell]::Create()
 $serverPs.Runspace = $serverRunspace
-[void]$serverPs.AddScript($serverScript).AddArgument($root).AddArgument($destRoot).AddArgument($Port)
+[void]$serverPs.AddScript($serverScript).AddArgument($root).AddArgument($destRoot).AddArgument($Port).AddArgument($AllowRemote.IsPresent)
 $serverHandle = $serverPs.BeginInvoke()
 
 Start-Sleep -Milliseconds 700
@@ -336,6 +355,11 @@ foreach ($w in $serverPs.Streams.Warning) { Write-Warning $w.Message }
 
 Write-Host "======================================================"
 Write-Host " Diashow lokal: http://localhost:$Port/slideshow.html"
+if ($AllowRemote) {
+    $lanIps = (Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+        Where-Object { $_.IPAddress -notlike '169.254.*' -and $_.IPAddress -ne '127.0.0.1' }).IPAddress
+    foreach ($ip in $lanIps) { Write-Host " Auch erreichbar: http://${ip}:$Port/slideshow.html" }
+}
 Write-Host " Quelle:        $Source"
 Write-Host " Lokaler Cache: $destRoot"
 Write-Host " Strg+C zum Beenden (stoppt auch den lokalen Server)"

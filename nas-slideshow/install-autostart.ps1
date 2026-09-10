@@ -9,18 +9,29 @@
   Hochzeitstag nicht durchgehend am Netz haengt) und hat kein Zeitlimit
   (Task Scheduler wuerde eine Dauerschleife sonst nach 3 Tagen killen).
 
+.PARAMETER AllowRemote
+  Reicht -AllowRemote an run-local.ps1 durch (Server auch im (V)LAN
+  erreichbar, nicht nur von diesem Rechner selbst) - siehe dessen eigene
+  Hilfe fuer die noetigen einmaligen Admin-Schritte (netsh urlacl +
+  Firewall-Freigabe), OHNE die klappt auch dieser Schalter nicht.
+
 .EXAMPLE
   .\install-autostart.ps1
+  .\install-autostart.ps1 -AllowRemote
   .\uninstall-autostart.ps1   # zum Rueckgaengigmachen
 #>
+param(
+    [switch]$AllowRemote
+)
 
 $ErrorActionPreference = 'Stop'
 $taskName = 'Hochzeit-Slideshow-Sync'
 $scriptPath = Join-Path $PSScriptRoot 'run-local.ps1'
 $logPath = Join-Path $env:USERPROFILE 'Downloads\Hochzeitsfotos-Sync.log'
+$remoteArg = if ($AllowRemote) { ' -AllowRemote' } else { '' }
 
 $action = New-ScheduledTaskAction -Execute 'powershell.exe' `
-    -Argument "-ExecutionPolicy Bypass -WindowStyle Hidden -Command `"& '$scriptPath' *>&1 | Out-File -FilePath '$logPath' -Append -Encoding utf8`""
+    -Argument "-ExecutionPolicy Bypass -WindowStyle Hidden -Command `"& '$scriptPath'$remoteArg *>&1 | Out-File -FilePath '$logPath' -Append -Encoding utf8`""
 
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
 

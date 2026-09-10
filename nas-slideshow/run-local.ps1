@@ -66,6 +66,29 @@ $allowedExt = @('.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.heif')
 
 if (-not (Test-Path $destRoot)) { New-Item -ItemType Directory -Path $destRoot | Out-Null }
 
+# --- Nur eine Instanz gleichzeitig: live beobachtet, dass z.B. ein Sleep/
+#     Wake-Zyklus oder ein manueller Zusatzstart eine zweite Instanz neben
+#     der von der Aufgabenplanung verwalteten laufen liess. Zwei Prozesse
+#     haben getrennten Arbeitsspeicher (getrennte $knownHashes) und wissen
+#     nichts voneinander - beide hielten dieselbe neu hochgeladene Datei
+#     fuer "noch nicht gesehen", kopierten sie gleichzeitig, und der
+#     Namens-Kollisions-Fallback weiter unten (der eigentlich fuer echt
+#     gleichnamige, aber inhaltlich unterschiedliche Dateien gedacht ist)
+#     erzeugte dadurch eine exakte Doppelkopie unter "name_1.ext" - ein
+#     Duplikat, obwohl die Hash-Pruefung an sich korrekt war. Eine simple
+#     Datei-Sperre (exklusiv geoeffnet, nie geschlossen bis Prozessende)
+#     verhindert das strukturell: eine zweite Instanz bekommt die Datei
+#     nicht exklusiv geoeffnet und beendet sich sofort, statt eine Race
+#     ueberhaupt erst zu riskieren. Kein Aufraeumen noetig - das Handle
+#     faellt beim Prozessende (auch bei einem harten Kill) automatisch weg.
+$lockPath = Join-Path $destRoot '.sync.lock'
+try {
+    $lockStream = [System.IO.File]::Open($lockPath, [System.IO.FileMode]::OpenOrCreate, [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::None)
+} catch {
+    Write-Warning "Eine andere Instanz laeuft bereits (Sperrdatei $lockPath belegt) - beende mich sofort, um eine Daten-Race zu vermeiden."
+    exit 1
+}
+
 # --- Bestehenden Stand laden, damit ein Neustart des Skripts nicht wieder bei
 #     Null anfaengt (nichts wird doppelt kopiert oder erneut gehasht). ---
 $knownHashes = New-Object 'System.Collections.Generic.HashSet[string]'
@@ -376,4 +399,5 @@ try {
     $serverPs.Dispose()
     $serverRunspace.Close()
     $serverRunspace.Dispose()
+    $lockStream.Dispose()
 }

@@ -107,10 +107,10 @@
   const resolvedCache = new Map(); // Original-URL -> konvertierte Blob-URL (oder null bei Fehler)
 
   const seen = new Set();
-  const byUser = new Map();   // user -> { all: [url,...], bag: [...], lastShown }
-  const userOrder = [];       // Reihenfolge, in der Gaeste zum ersten Mal auftauchen
-  let turnQueue = [];         // Gaeste-Namen, nach Fotoanzahl gewichtet und gemischt
-  let turnCursor = 0;
+  const byUser = new Map();   // user -> { all: [url,...] } - nur zum Nachschlagen/Zaehlen
+  let globalBag = [];         // { user, url } - Ziehen ohne Zuruecklegen ueber ALLE Fotos
+  let lastUser = null;
+  let lastUrl = null;
   let currentEl = null;
   let showTimer = null;
 
@@ -132,24 +132,12 @@
         // mit Tippfehler) - sonst zaehlt dieselbe Person als zwei Gaeste
         // und bekommt doppelt so oft die Reihe wie alle anderen.
         const user = (img.user || '').trim().replace(/\s+/g, ' ');
-        if (!byUser.has(user)) {
-          byUser.set(user, { all: [], bag: [], lastShown: null });
-          userOrder.push(user);
-        }
-        const bucket = byUser.get(user);
-        bucket.all.push(img.url);
+        if (!byUser.has(user)) byUser.set(user, { all: [] });
+        byUser.get(user).all.push(img.url);
         // Sofort in die aktuelle Mischung aufnehmen statt nur hinten
         // anzuhaengen - neue Fotos sollen zeitnah drankommen, nicht erst
         // nachdem alle alten einmal durch sind.
-        bucket.bag.push(img.url);
-      }
-      if (added) {
-        // Neu gewichten: Gaeste mit mehr Fotos bekommen anteilig oefter die
-        // Reihe (gedaempft per Quadratwurzel, damit ein Vielfotograf nicht
-        // komplett dominiert) statt jeder exakt gleich oft egal wie viele
-        // Fotos er/sie hat - sonst wirkt das kleine Foto-Set eines Gastes
-        // mit wenigen Uploads viel staerker "sich wiederholend".
-        rebuildTurnQueue();
+        globalBag.push({ user, url: img.url });
       }
       if (added && currentEl === null) {
         placeholder.style.display = 'none';
@@ -160,58 +148,47 @@
     }
   }
 
-  // Ziehen ohne Zuruecklegen pro Gast: eigene Fotos in zufaelliger statt
-  // chronologischer Reihenfolge, Pool wird nach jedem Durchlauf neu
-  // gemischt (verhindert, dass das zuletzt gezeigte Bild dieses Gastes
-  // gleich wieder als erstes drankommt). Reihum ueber die Gaeste selbst
-  // bleibt bestehen - so blockiert niemand, der viele Fotos auf einmal
-  // hochlaedt, die Anzeige der anderen, und es laufen nie zwei Fotos
-  // derselben Person direkt hintereinander (bei >=2 aktiven Gaesten).
-  function refillBag(bucket) {
-    bucket.bag = bucket.all.slice();
-    for (let i = bucket.bag.length - 1; i > 0; i--) {
+  // Ziehen ohne Zuruecklegen ueber ALLE Fotos zusammen (nicht mehr pro
+  // Gast + erzwungener Turnus): kein Foto kommt vor einem vollstaendigen
+  // Durchlauf aller anderen wieder. User-Feedback: eine Wiederholung ist
+  // schlimmer, als dass ein Gast mit wenigen Fotos seltener drankommt -
+  // "jeder Gast wird garantiert gezeigt" wird daher NICHT mehr erzwungen,
+  // jeder ist automatisch mit seinem echten Anteil am Gesamtpool dabei.
+  function refillGlobalBag() {
+    globalBag = [];
+    for (const [user, bucket] of byUser) {
+      for (const url of bucket.all) globalBag.push({ user, url });
+    }
+    for (let i = globalBag.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [bucket.bag[i], bucket.bag[j]] = [bucket.bag[j], bucket.bag[i]];
+      [globalBag[i], globalBag[j]] = [globalBag[j], globalBag[i]];
     }
-    if (bucket.bag.length > 1 && bucket.bag[0] === bucket.lastShown) {
-      const swapWith = 1 + Math.floor(Math.random() * (bucket.bag.length - 1));
-      [bucket.bag[0], bucket.bag[swapWith]] = [bucket.bag[swapWith], bucket.bag[0]];
+    if (globalBag.length > 1 && globalBag[0].url === lastUrl) {
+      const swapWith = 1 + Math.floor(Math.random() * (globalBag.length - 1));
+      [globalBag[0], globalBag[swapWith]] = [globalBag[swapWith], globalBag[0]];
     }
-  }
-
-  // Turnus nach Fotoanzahl gewichtet statt stur 1 Runde pro Gast: sqrt()
-  // daempft das, damit ein Gast mit 100+ Fotos nicht komplett dominiert,
-  // aber trotzdem spuerbar oefter drankommt als jemand mit 2-3 Fotos -
-  // dessen kleines Set sich sonst viel staerker "wiederholend" anfuehlt,
-  // weil es genauso oft die Reihe bekommt wie ein grosses.
-  function rebuildTurnQueue() {
-    turnQueue = [];
-    for (const user of userOrder) {
-      const bucket = byUser.get(user);
-      const weight = Math.max(1, Math.round(Math.sqrt(bucket.all.length)));
-      for (let i = 0; i < weight; i++) turnQueue.push(user);
-    }
-    for (let i = turnQueue.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [turnQueue[i], turnQueue[j]] = [turnQueue[j], turnQueue[i]];
-    }
-    turnCursor = 0;
   }
 
   function pickOne() {
-    if (turnQueue.length === 0) return null;
-    for (let i = 0; i < turnQueue.length; i++) {
-      const user = turnQueue[turnCursor % turnQueue.length];
-      turnCursor++;
-      const bucket = byUser.get(user);
-      if (bucket.all.length > 0) {
-        if (bucket.bag.length === 0) refillBag(bucket);
-        const url = bucket.bag.shift();
-        bucket.lastShown = url;
-        return url;
+    if (globalBag.length === 0) refillGlobalBag();
+    if (globalBag.length === 0) return null;
+    // Nur Kuer, kein hartes Muss: falls vorne in der Mischung ein Foto
+    // derselben Person liegt wie zuletzt gezeigt, mit dem naechsten
+    // tauschen der von jemand anderem ist - bei wenigen aktiven Gaesten
+    // (oder einem, der fast den ganzen Pool stellt) nicht immer moeglich,
+    // dann bleibt's eben dabei statt ein Foto zu wiederholen.
+    if (globalBag.length > 1 && globalBag[0].user === lastUser) {
+      for (let i = 1; i < globalBag.length; i++) {
+        if (globalBag[i].user !== lastUser) {
+          [globalBag[0], globalBag[i]] = [globalBag[i], globalBag[0]];
+          break;
+        }
       }
     }
-    return null;
+    const item = globalBag.shift();
+    lastUser = item.user;
+    lastUrl = item.url;
+    return item.url;
   }
 
   function totalAvailable() {

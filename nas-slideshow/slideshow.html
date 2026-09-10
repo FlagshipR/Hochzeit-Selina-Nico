@@ -96,10 +96,23 @@
      Dateien einwandfrei. -->
 <script src="libheif-bundle.js"></script>
 <script>
-  // Lokale, von run-local.ps1 erzeugte Liste statt list.php - die Slideshow
-  // liest nur noch aus dem lokalen Cache, nie live von der NAS. So laeuft
-  // sie weiter, selbst wenn VPN/Netzwerk zur NAS zwischendurch abbricht.
-  const LIST_URL = 'cache/list.json';
+  // Diese eine Datei laeuft in zwei Kontexten, erkennt selbst welcher:
+  // 1) lokal vom Laptop ueber run-local.ps1 - liest aus dem lokalen Cache
+  //    (cache/list.json), nie live von der NAS, laeuft auch bei VPN-/
+  //    Netzwerk-Aussetzern weiter.
+  // 2) direkt von der NAS ueber Web Station ausgeliefert (z.B. fuer ein
+  //    Geraet wie einen Fire-TV-Stick, das per VPN direkt ins Heimnetz
+  //    geht, ohne dass ein Laptop dazwischenhaengt) - liest live per
+  //    list.php. Dafuer sorgt sync-clean.php auf der NAS fuer Duplikat-
+  //    Bereinigung, list.php selbst filtert nicht.
+  let LIST_URL = 'cache/list.json';
+  async function detectListUrl() {
+    try {
+      const res = await fetch('cache/list.json', { method: 'HEAD' });
+      if (res.ok) return;
+    } catch (e) {}
+    LIST_URL = 'list.php';
+  }
   const DISPLAY_SECONDS = 6;
   const POLL_SECONDS = 12;
   const KB_VARIANTS = ['kb-zoom-in', 'kb-zoom-out', 'kb-pan-left', 'kb-pan-right'];
@@ -306,8 +319,10 @@
     showTimer = setTimeout(showNext, displaySeconds * 1000);
   }
 
-  poll();
-  setInterval(poll, POLL_SECONDS * 1000);
+  detectListUrl().then(() => {
+    poll();
+    setInterval(poll, POLL_SECONDS * 1000);
+  });
 </script>
 
 </body>

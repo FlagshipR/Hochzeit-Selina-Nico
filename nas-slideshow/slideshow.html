@@ -289,15 +289,33 @@
     return cell;
   }
 
-  async function showNext() {
+  // Naechste Gruppe vorbereiten UND tatsaechlich vorladen (HEIC dekodieren,
+  // Bilddaten per Image() in den Browser-Cache holen), waehrend die aktuelle
+  // Slide noch steht - sonst startet der Ladevorgang erst im Moment des
+  // Wechsels und man sieht ein Ruckeln/verzoegertes Auftauchen. Funktioniert
+  // unveraendert in beiden Betriebsarten (lokaler Cache vom Laptop oder
+  // live von der NAS ueber list.php), weil hier nur mit den fertigen URLs
+  // gearbeitet wird, unabhaengig von ihrer Herkunft.
+  let nextGroupPromise = null;
+
+  async function prepareGroup() {
     const urls = pickGroup();
-    if (urls.length === 0) return;
+    if (urls.length === 0) return [];
+    const resolved = (await Promise.all(urls.map(resolveUrl))).filter(u => u !== null);
+    await Promise.all(resolved.map(url => new Promise(resolve => {
+      const img = new Image();
+      img.onload = resolve;
+      img.onerror = resolve; // nicht blockieren - buildCell() faengt kaputte Bilder separat ab
+      img.src = url;
+    })));
+    return resolved;
+  }
+
+  async function showNext() {
     clearTimeout(showTimer);
 
-    // Konvertierung laeuft im Hintergrund waehrend das vorige Bild noch
-    // steht - nur beim allerersten Mal pro HEIC-Datei spuerbar, danach
-    // liefert der Cache sofort.
-    const resolved = (await Promise.all(urls.map(resolveUrl))).filter(u => u !== null);
+    const resolved = nextGroupPromise ? await nextGroupPromise : await prepareGroup();
+    nextGroupPromise = null;
     if (resolved.length === 0) {
       showTimer = setTimeout(showNext, 500);
       return;
@@ -317,6 +335,10 @@
 
     const displaySeconds = DISPLAY_SECONDS + (resolved.length - 1) * 1.5;
     showTimer = setTimeout(showNext, displaySeconds * 1000);
+
+    // Ab jetzt, waehrend diese Slide laeuft, schon die naechste im
+    // Hintergrund vorbereiten/vorladen.
+    nextGroupPromise = prepareGroup();
   }
 
   detectListUrl().then(() => {

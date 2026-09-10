@@ -89,6 +89,16 @@ try {
     exit 1
 }
 
+# --- Fuer die Bildverarbeitung (HEIC-Dekodierung ueber den Windows-eigenen
+#     HEIF-Codec + Skalierung, siehe Sync-Once) - auf der NAS selbst nicht
+#     moeglich (ffmpeg/ImageMagick scheitern dort nachweislich an HEIC,
+#     PHP hat keine imagick/gd-Extension geladen), deshalb macht das der
+#     Laptop und schreibt das Ergebnis zusaetzlich auf die NAS zurueck. ---
+Add-Type -AssemblyName PresentationCore
+$preparedRoot = Join-Path (Split-Path $Source -Parent) 'Vorbereitet'
+$maxEdgePx = 1920
+$jpegQuality = 85
+
 # --- Bestehenden Stand laden, damit ein Neustart des Skripts nicht wieder bei
 #     Null anfaengt (nichts wird doppelt kopiert oder erneut gehasht). ---
 $knownHashes = New-Object 'System.Collections.Generic.HashSet[string]'
@@ -229,19 +239,110 @@ function Sync-Once {
         $destUserDir = Join-Path $destRoot $user
         if (-not (Test-Path $destUserDir)) { New-Item -ItemType Directory -Path $destUserDir | Out-Null }
 
-        $destName = $f.Name
+        # Zielname = kompletter Originalname + ".jpg" angehaengt (nicht die
+        # Endung ersetzt), z.B. "IMG_0927.HEIC" -> "IMG_0927.HEIC.jpg" - dank
+        # dem eindeutigen Original-Dateinamen automatisch kollisionsfrei,
+        # keine _1/_2-Zaehllogik noetig. Wichtig auch fuer list.php: die kann
+        # denselben Namen dadurch aus dem Original vorhersagen, ohne die
+        # Kopierreihenfolge zu kennen.
+        $destName = "$($f.Name).jpg"
         $destPath = Join-Path $destUserDir $destName
-        $suffix = 1
-        while (Test-Path -LiteralPath $destPath) {
-            $destName = "{0}_{1}{2}" -f $f.BaseName, $suffix, $f.Extension
-            $destPath = Join-Path $destUserDir $destName
-            $suffix++
-        }
 
-        Copy-Item -LiteralPath $f.FullName -Destination $destPath -Force
+        # Dekodieren, auf $maxEdgePx lange Kante herunterskalieren (nie
+        # hochskalieren) und als JPEG re-encodieren - damit muss kein Browser
+        # (gerade schwaechere Geraete wie ein Fire-TV-Stick) HEIC selbst
+        # dekodieren oder unnoetig grosse Fotos laden. Dank Manifest passiert
+        # das pro Foto nur einmal, nicht bei jedem Sync-Zyklus. Bei einem
+        # Fehler (seltenes/beschaedigtes Format) faellt es auf eine einfache
+        # Kopie des Originals zurueck, statt das Foto zu verlieren.
+        $processed = $false
+        try {
+            $ms = New-Object System.IO.MemoryStream(, $bytes)
+            $decoder = [System.Windows.Media.Imaging.BitmapDecoder]::Create(
+                $ms,
+                [System.Windows.Media.Imaging.BitmapCreateOptions]::PreservePixelFormat,
+                [System.Windows.Media.Imaging.BitmapCacheOption]::OnLoad
+            )
+            $frame = $decoder.Frames[0]
+            $bitmapSource = $frame
+
+            # EXIF-/HEIF-Ausrichtung einrechnen: viele Handys speichern
+            # Hochkant-Fotos als liegende Pixeldaten plus einem Dreh-Hinweis
+            # in den Metadaten, den normale Bildbetrachter automatisch
+            # anwenden - WPFs JpegBitmapEncoder tut das beim Re-Encodieren
+            # aber NICHT von selbst, sonst waeren die Fotos im Ergebnis
+            # seitlich/kopfueber. "System.Photo.Orientation" ist der
+            # formatunabhaengige Windows-Property-Name, funktioniert sowohl
+            # fuer klassisches EXIF (JPEG) als auch HEIF-Metadaten.
+            $orientation = 1
+            try {
+                $ori = $frame.Metadata.GetQuery('System.Photo.Orientation')
+                if ($ori) { $orientation = [int]$ori }
+            } catch {}
+
+            if ($orientation -ne 1) {
+                $rotGroup = New-Object System.Windows.Media.TransformGroup
+                switch ($orientation) {
+                    2 { $rotGroup.Children.Add((New-Object System.Windows.Media.ScaleTransform(-1, 1))) }
+                    3 { $rotGroup.Children.Add((New-Object System.Windows.Media.RotateTransform(180))) }
+                    4 { $rotGroup.Children.Add((New-Object System.Windows.Media.ScaleTransform(1, -1))) }
+                    5 { $rotGroup.Children.Add((New-Object System.Windows.Media.ScaleTransform(-1, 1))); $rotGroup.Children.Add((New-Object System.Windows.Media.RotateTransform(90))) }
+                    6 { $rotGroup.Children.Add((New-Object System.Windows.Media.RotateTransform(90))) }
+                    7 { $rotGroup.Children.Add((New-Object System.Windows.Media.ScaleTransform(-1, 1))); $rotGroup.Children.Add((New-Object System.Windows.Media.RotateTransform(270))) }
+                    8 { $rotGroup.Children.Add((New-Object System.Windows.Media.RotateTransform(270))) }
+                }
+                if ($rotGroup.Children.Count -gt 0) {
+                    $rotated = New-Object System.Windows.Media.Imaging.TransformedBitmap
+                    $rotated.BeginInit()
+                    $rotated.Source = $frame
+                    $rotated.Transform = $rotGroup
+                    $rotated.EndInit()
+                    $bitmapSource = $rotated
+                }
+            }
+
+            # Skalierung NACH der Rotation berechnen - bei 90/270 Grad sind
+            # Breite und Hoehe vertauscht, $bitmapSource.PixelWidth/Height
+            # spiegelt das an dieser Stelle schon korrekt wider.
+            $longEdge = [Math]::Max($bitmapSource.PixelWidth, $bitmapSource.PixelHeight)
+            if ($longEdge -gt $maxEdgePx) {
+                $scale = $maxEdgePx / $longEdge
+                $scaled = New-Object System.Windows.Media.Imaging.TransformedBitmap
+                $scaled.BeginInit()
+                $scaled.Source = $bitmapSource
+                $scaled.Transform = New-Object System.Windows.Media.ScaleTransform($scale, $scale)
+                $scaled.EndInit()
+                $bitmapSource = $scaled
+            }
+            $encoder = New-Object System.Windows.Media.Imaging.JpegBitmapEncoder
+            $encoder.QualityLevel = $jpegQuality
+            $encoder.Frames.Add([System.Windows.Media.Imaging.BitmapFrame]::Create($bitmapSource))
+            $outStream = [System.IO.File]::Open($destPath, [System.IO.FileMode]::Create)
+            try { $encoder.Save($outStream) } finally { $outStream.Close() }
+            $ms.Dispose()
+            $processed = $true
+        } catch {
+            Write-Warning "$(Get-Date -Format 'HH:mm:ss')  Konnte $relSource nicht dekodieren/skalieren, kopiere Original: $_"
+        }
+        if (-not $processed) {
+            Copy-Item -LiteralPath $f.FullName -Destination $destPath -Force
+        }
 
         [void]$knownHashes.Add($hash)
         $manifest[$manifestKey] = @{ size = $f.Length; mtime = $mtimeTicks; status = 'copied'; hash = $hash }
+
+        # Gleiches Ergebnis zusaetzlich auf die NAS zurueckschreiben, damit
+        # list.php (Fire-TV-Stick/Online-Pfad) ebenfalls das schlanke,
+        # vorbereitete Bild ausliefern kann statt des Rohformats. Bewusst
+        # nicht fatal: ein kurzer NAS-Schreibfehler darf den lokalen Cache
+        # nicht blockieren.
+        try {
+            $preparedUserDir = Join-Path $preparedRoot $user
+            if (-not (Test-Path $preparedUserDir)) { New-Item -ItemType Directory -Path $preparedUserDir -Force | Out-Null }
+            Copy-Item -LiteralPath $destPath -Destination (Join-Path $preparedUserDir $destName) -Force
+        } catch {
+            Write-Warning "$(Get-Date -Format 'HH:mm:ss')  Konnte vorbereitetes Bild nicht auf NAS zurueckschreiben ($relSource): $_"
+        }
 
         $unixTime = [DateTimeOffset]::new($f.LastWriteTimeUtc).ToUnixTimeSeconds()
         # "cache/" Praefix, weil der lokale Server Code (nas-slideshow/) und

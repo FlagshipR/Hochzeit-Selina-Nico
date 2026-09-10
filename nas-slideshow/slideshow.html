@@ -107,9 +107,10 @@
   const resolvedCache = new Map(); // Original-URL -> konvertierte Blob-URL (oder null bei Fehler)
 
   const seen = new Set();
-  const byUser = new Map();   // user -> { photos: [url, ...], pos: 0 }
+  const byUser = new Map();   // user -> { all: [url,...], bag: [...], lastShown }
   const userOrder = [];       // Reihenfolge, in der Gaeste zum ersten Mal auftauchen
-  let userCursor = 0;
+  let turnQueue = [];         // Gaeste-Namen, nach Fotoanzahl gewichtet und gemischt
+  let turnCursor = 0;
   let currentEl = null;
   let showTimer = null;
 
@@ -126,23 +127,32 @@
         if (seen.has(img.url)) continue;
         seen.add(img.url);
         added = true;
-        if (!byUser.has(img.user)) {
-          byUser.set(img.user, { all: [], bag: [], lastShown: null });
-          userOrder.push(img.user);
+        // Mehrfache Leerzeichen im Gast-Ordnernamen normalisieren (z.B.
+        // "Ole " vs. "Ole" durch zweimalige Nutzung der Dateianforderung
+        // mit Tippfehler) - sonst zaehlt dieselbe Person als zwei Gaeste
+        // und bekommt doppelt so oft die Reihe wie alle anderen.
+        const user = (img.user || '').trim().replace(/\s+/g, ' ');
+        if (!byUser.has(user)) {
+          byUser.set(user, { all: [], bag: [], lastShown: null });
+          userOrder.push(user);
         }
-        const bucket = byUser.get(img.user);
+        const bucket = byUser.get(user);
         bucket.all.push(img.url);
         // Sofort in die aktuelle Mischung aufnehmen statt nur hinten
         // anzuhaengen - neue Fotos sollen zeitnah drankommen, nicht erst
         // nachdem alle alten einmal durch sind.
         bucket.bag.push(img.url);
       }
+      if (added) {
+        // Neu gewichten: Gaeste mit mehr Fotos bekommen anteilig oefter die
+        // Reihe (gedaempft per Quadratwurzel, damit ein Vielfotograf nicht
+        // komplett dominiert) statt jeder exakt gleich oft egal wie viele
+        // Fotos er/sie hat - sonst wirkt das kleine Foto-Set eines Gastes
+        // mit wenigen Uploads viel staerker "sich wiederholend".
+        rebuildTurnQueue();
+      }
       if (added && currentEl === null) {
         placeholder.style.display = 'none';
-        // Zufaelliger Start-Gast, damit die Anzeige nach einem (Neu-)Start
-        // nicht immer beim selben Bild anfaengt. Danach laeuft der faire
-        // Reihum-Turnus normal weiter.
-        userCursor = Math.floor(Math.random() * userOrder.length);
         showNext();
       }
     } catch (e) {
@@ -169,10 +179,30 @@
     }
   }
 
+  // Turnus nach Fotoanzahl gewichtet statt stur 1 Runde pro Gast: sqrt()
+  // daempft das, damit ein Gast mit 100+ Fotos nicht komplett dominiert,
+  // aber trotzdem spuerbar oefter drankommt als jemand mit 2-3 Fotos -
+  // dessen kleines Set sich sonst viel staerker "wiederholend" anfuehlt,
+  // weil es genauso oft die Reihe bekommt wie ein grosses.
+  function rebuildTurnQueue() {
+    turnQueue = [];
+    for (const user of userOrder) {
+      const bucket = byUser.get(user);
+      const weight = Math.max(1, Math.round(Math.sqrt(bucket.all.length)));
+      for (let i = 0; i < weight; i++) turnQueue.push(user);
+    }
+    for (let i = turnQueue.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [turnQueue[i], turnQueue[j]] = [turnQueue[j], turnQueue[i]];
+    }
+    turnCursor = 0;
+  }
+
   function pickOne() {
-    for (let i = 0; i < userOrder.length; i++) {
-      const user = userOrder[userCursor];
-      userCursor = (userCursor + 1) % userOrder.length;
+    if (turnQueue.length === 0) return null;
+    for (let i = 0; i < turnQueue.length; i++) {
+      const user = turnQueue[turnCursor % turnQueue.length];
+      turnCursor++;
       const bucket = byUser.get(user);
       if (bucket.all.length > 0) {
         if (bucket.bag.length === 0) refillBag(bucket);

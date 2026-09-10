@@ -202,60 +202,25 @@ function Sync-Once {
             }
         }
 
-        try {
-            # Hash ueber den Dateiinhalt OHNE die letzten 8 KB statt der ganzen
-            # Datei: Handy-/Galerie-Apps (Google Fotos, Pixel Motion Photos,
-            # Samsung Burst-Cover, ...) haengen beim erneuten Export/Teilen
-            # oft eine neue, eindeutige ID an - Bild- und Videoinhalt bleiben
-            # dabei zu 100% gleich, nur ein winziger Trailer aendert sich.
-            # Beobachtet z.B. bei Julias PXL_*.MP.jpg/.MP_1.jpg (nur 32 von
-            # 5.741.837 Bytes unterschiedlich, ganz am Ende). Ein vollstaendiger
-            # Hash haette solche Fast-Duplikate verpasst; 8 KB sind bei
-            # mehrere-MB-Fotos ein verschwindend kleiner Anteil, das Risiko
-            # zwei tatsaechlich unterschiedliche Fotos faelschlich als
-            # Duplikat zu erkennen ist praktisch null.
-            $tailMargin = 8192
-            $bytes = [System.IO.File]::ReadAllBytes($f.FullName)
-            $bodyLength = if ($bytes.Length -gt $tailMargin) { $bytes.Length - $tailMargin } else { $bytes.Length }
-            $sha256 = [System.Security.Cryptography.SHA256]::Create()
-            try {
-                $hashBytes = $sha256.ComputeHash($bytes, 0, $bodyLength)
-            } finally {
-                $sha256.Dispose()
-            }
-            $hash = [BitConverter]::ToString($hashBytes) -replace '-', ''
-        } catch {
-            Write-Warning "$(Get-Date -Format 'HH:mm:ss')  Hash fehlgeschlagen fuer $relSource - ueberspringe: $_"
-            continue
-        }
+        $bytes = [System.IO.File]::ReadAllBytes($f.FullName)
 
-        if ($knownHashes.Contains($hash)) {
-            $manifest[$manifestKey] = @{ size = $f.Length; mtime = $mtimeTicks; status = 'duplicate' }
-            $dupCount++
-            $changed = $true
-            continue
-        }
-
-        $destUserDir = Join-Path $destRoot $user
-        if (-not (Test-Path $destUserDir)) { New-Item -ItemType Directory -Path $destUserDir | Out-Null }
-
-        # Zielname = kompletter Originalname + ".jpg" angehaengt (nicht die
-        # Endung ersetzt), z.B. "IMG_0927.HEIC" -> "IMG_0927.HEIC.jpg" - dank
-        # dem eindeutigen Original-Dateinamen automatisch kollisionsfrei,
-        # keine _1/_2-Zaehllogik noetig. Wichtig auch fuer list.php: die kann
-        # denselben Namen dadurch aus dem Original vorhersagen, ohne die
-        # Kopierreihenfolge zu kennen.
-        $destName = "$($f.Name).jpg"
-        $destPath = Join-Path $destUserDir $destName
-
-        # Dekodieren, auf $maxEdgePx lange Kante herunterskalieren (nie
-        # hochskalieren) und als JPEG re-encodieren - damit muss kein Browser
-        # (gerade schwaechere Geraete wie ein Fire-TV-Stick) HEIC selbst
-        # dekodieren oder unnoetig grosse Fotos laden. Dank Manifest passiert
-        # das pro Foto nur einmal, nicht bei jedem Sync-Zyklus. Bei einem
-        # Fehler (seltenes/beschaedigtes Format) faellt es auf eine einfache
-        # Kopie des Originals zurueck, statt das Foto zu verlieren.
-        $processed = $false
+        # Dekodieren, EXIF-/HEIF-Ausrichtung einrechnen, auf $maxEdgePx lange
+        # Kante herunterskalieren (nie hochskalieren) und als JPEG
+        # re-encodieren - Ergebnis zunaechst nur im Speicher, noch nicht auf
+        # die Platte geschrieben.
+        #
+        # WICHTIG: der Duplikat-Hash wird jetzt ueber dieses VERARBEITETE
+        # Ergebnis gebildet (reine Bilddaten, keine Metadaten mehr), nicht
+        # mehr ueber die Rohdatei. Live gefunden, warum das noetig ist: zwei
+        # Uploads von Ole (identischer Bildinhalt, ueber zwei Ordner wegen
+        # des Leerzeichen-Tippfehlers) hatten unterschiedliche Rohdaten-
+        # Hashes trotz gleicher Dateigroesse - JPEG-Metadaten (EXIF etc.)
+        # sitzen typischerweise am ANFANG der Datei, nicht nur im Trailer
+        # wie bei den Motion-Photo-Faellen (PXL_*.MP.jpg/.MP_1.jpg, siehe
+        # Git-Historie) - ein reiner Tail-Ausschluss haette das verpasst.
+        # Nach dem Dekodieren+Neuencodieren bleibt nur noch der reine
+        # Bildinhalt uebrig, der Hash darueber ist deshalb zuverlaessiger.
+        $outputBytes = $null
         try {
             $ms = New-Object System.IO.MemoryStream(, $bytes)
             $decoder = [System.Windows.Media.Imaging.BitmapDecoder]::Create(
@@ -317,16 +282,59 @@ function Sync-Once {
             $encoder = New-Object System.Windows.Media.Imaging.JpegBitmapEncoder
             $encoder.QualityLevel = $jpegQuality
             $encoder.Frames.Add([System.Windows.Media.Imaging.BitmapFrame]::Create($bitmapSource))
-            $outStream = [System.IO.File]::Open($destPath, [System.IO.FileMode]::Create)
-            try { $encoder.Save($outStream) } finally { $outStream.Close() }
+            $outMs = New-Object System.IO.MemoryStream
+            $encoder.Save($outMs)
+            $outputBytes = $outMs.ToArray()
+            $outMs.Dispose()
             $ms.Dispose()
-            $processed = $true
         } catch {
-            Write-Warning "$(Get-Date -Format 'HH:mm:ss')  Konnte $relSource nicht dekodieren/skalieren, kopiere Original: $_"
+            Write-Warning "$(Get-Date -Format 'HH:mm:ss')  Konnte $relSource nicht dekodieren/skalieren, verwende Original: $_"
         }
-        if (-not $processed) {
-            Copy-Item -LiteralPath $f.FullName -Destination $destPath -Force
+
+        if ($outputBytes) {
+            $bodyLength = $outputBytes.Length
+        } else {
+            # Fallback: unverarbeitetes Original (seltenes/beschaedigtes
+            # Format) - dafuer weiterhin Tail-Ausschluss beim Hash, da hier
+            # keine bereinigte Version existiert, ueber die man stattdessen
+            # gehen koennte (Begruendung siehe oben).
+            $outputBytes = $bytes
+            $tailMargin = 8192
+            $bodyLength = if ($outputBytes.Length -gt $tailMargin) { $outputBytes.Length - $tailMargin } else { $outputBytes.Length }
         }
+
+        try {
+            $sha256 = [System.Security.Cryptography.SHA256]::Create()
+            try {
+                $hashBytes = $sha256.ComputeHash($outputBytes, 0, $bodyLength)
+            } finally {
+                $sha256.Dispose()
+            }
+            $hash = [BitConverter]::ToString($hashBytes) -replace '-', ''
+        } catch {
+            Write-Warning "$(Get-Date -Format 'HH:mm:ss')  Hash fehlgeschlagen fuer $relSource - ueberspringe: $_"
+            continue
+        }
+
+        if ($knownHashes.Contains($hash)) {
+            $manifest[$manifestKey] = @{ size = $f.Length; mtime = $mtimeTicks; status = 'duplicate' }
+            $dupCount++
+            $changed = $true
+            continue
+        }
+
+        $destUserDir = Join-Path $destRoot $user
+        if (-not (Test-Path $destUserDir)) { New-Item -ItemType Directory -Path $destUserDir | Out-Null }
+
+        # Zielname = kompletter Originalname + ".jpg" angehaengt (nicht die
+        # Endung ersetzt), z.B. "IMG_0927.HEIC" -> "IMG_0927.HEIC.jpg" - dank
+        # dem eindeutigen Original-Dateinamen automatisch kollisionsfrei,
+        # keine _1/_2-Zaehllogik noetig. Wichtig auch fuer list.php: die kann
+        # denselben Namen dadurch aus dem Original vorhersagen, ohne die
+        # Kopierreihenfolge zu kennen.
+        $destName = "$($f.Name).jpg"
+        $destPath = Join-Path $destUserDir $destName
+        [System.IO.File]::WriteAllBytes($destPath, $outputBytes)
 
         [void]$knownHashes.Add($hash)
         $manifest[$manifestKey] = @{ size = $f.Length; mtime = $mtimeTicks; status = 'copied'; hash = $hash }
@@ -339,7 +347,7 @@ function Sync-Once {
         try {
             $preparedUserDir = Join-Path $preparedRoot $user
             if (-not (Test-Path $preparedUserDir)) { New-Item -ItemType Directory -Path $preparedUserDir -Force | Out-Null }
-            Copy-Item -LiteralPath $destPath -Destination (Join-Path $preparedUserDir $destName) -Force
+            [System.IO.File]::WriteAllBytes((Join-Path $preparedUserDir $destName), $outputBytes)
         } catch {
             Write-Warning "$(Get-Date -Format 'HH:mm:ss')  Konnte vorbereitetes Bild nicht auf NAS zurueckschreiben ($relSource): $_"
         }

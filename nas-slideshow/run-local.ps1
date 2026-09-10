@@ -202,7 +202,15 @@ function Sync-Once {
             }
         }
 
-        $bytes = [System.IO.File]::ReadAllBytes($f.FullName)
+        try {
+            $bytes = [System.IO.File]::ReadAllBytes($f.FullName)
+        } catch {
+            # Siehe Begruendung beim lokalen Schreiben weiter unten - ein
+            # einzelner Lesefehler (z.B. NAS/VPN kurz weg) darf nicht den
+            # gesamten Sync-Prozess abschiessen.
+            Write-Warning "$(Get-Date -Format 'HH:mm:ss')  Konnte $relSource nicht lesen - ueberspringe: $_"
+            continue
+        }
 
         # Dekodieren, EXIF-/HEIF-Ausrichtung einrechnen, auf $maxEdgePx lange
         # Kante herunterskalieren (nie hochskalieren) und als JPEG
@@ -323,8 +331,13 @@ function Sync-Once {
             continue
         }
 
-        $destUserDir = Join-Path $destRoot $user
-        if (-not (Test-Path $destUserDir)) { New-Item -ItemType Directory -Path $destUserDir | Out-Null }
+        try {
+            $destUserDir = Join-Path $destRoot $user
+            if (-not (Test-Path $destUserDir)) { New-Item -ItemType Directory -Path $destUserDir | Out-Null }
+        } catch {
+            Write-Warning "$(Get-Date -Format 'HH:mm:ss')  Konnte Zielordner fuer $relSource nicht anlegen - ueberspringe: $_"
+            continue
+        }
 
         # Zielname = kompletter Originalname + ".jpg" angehaengt (nicht die
         # Endung ersetzt), z.B. "IMG_0927.HEIC" -> "IMG_0927.HEIC.jpg" - dank
@@ -334,7 +347,19 @@ function Sync-Once {
         # Kopierreihenfolge zu kennen.
         $destName = "$($f.Name).jpg"
         $destPath = Join-Path $destUserDir $destName
-        [System.IO.File]::WriteAllBytes($destPath, $outputBytes)
+        try {
+            [System.IO.File]::WriteAllBytes($destPath, $outputBytes)
+        } catch {
+            # Ungeschuetzt haette ein einzelner Schreibfehler (z.B. kurzer
+            # Netzwerk-/Berechtigungs-Haenger) mit $ErrorActionPreference =
+            # 'Stop' den GESAMTEN Sync-Prozess abgeschossen, nicht nur diese
+            # eine Datei uebersprungen - live so passiert (Prozess stieg mit
+            # Exit-Code 1 mitten im Durchlauf aus, ohne dass die naechste
+            # Aufgabenplanungs-Runde automatisch nachgeholfen haette, weil
+            # der Neustart-Zaehler dabei mit aufgebraucht wurde).
+            Write-Warning "$(Get-Date -Format 'HH:mm:ss')  Konnte $relSource nicht lokal schreiben - ueberspringe: $_"
+            continue
+        }
 
         [void]$knownHashes.Add($hash)
         $manifest[$manifestKey] = @{ size = $f.Length; mtime = $mtimeTicks; status = 'copied'; hash = $hash }
@@ -499,7 +524,16 @@ Write-Host "======================================================"
 
 try {
     while ($true) {
-        Sync-Once
+        # Letztes Sicherheitsnetz: selbst ein unvorhergesehener Fehler in
+        # Sync-Once (trotz der gezielten try/catch-Stellen darin) soll die
+        # Dauerschleife nicht komplett abschiessen - lieber diesen einen
+        # Zyklus verpassen und beim naechsten weitermachen, als den ganzen
+        # Prozess zu verlieren (besonders wichtig waehrend der Feier).
+        try {
+            Sync-Once
+        } catch {
+            Write-Warning "$(Get-Date -Format 'HH:mm:ss')  Unerwarteter Fehler in Sync-Once, naechster Versuch in $IntervalSeconds s: $_"
+        }
         Start-Sleep -Seconds $IntervalSeconds
     }
 } finally {

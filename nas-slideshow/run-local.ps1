@@ -103,6 +103,15 @@ $jpegQuality = 85
 #     Null anfaengt (nichts wird doppelt kopiert oder erneut gehasht). ---
 $knownHashes = New-Object 'System.Collections.Generic.HashSet[string]'
 $images = New-Object 'System.Collections.Generic.List[object]'
+# --- Index url -> Position in $images, damit ein erneut verarbeitetes Foto
+#     (gleiche Quelle, geaendertes mtime/size - z.B. eine spaeter korrigierte
+#     Drehung) den BESTEHENDEN Eintrag ersetzt statt einen weiteren
+#     anzuhaengen. Live entdeckt: ohne diesen Index sammelten sich bei jeder
+#     Neuverarbeitung veraltete Karteileichen in list.json an (mehrfache
+#     Eintraege fuer dieselbe URL, teils auf laengst durch eine neuere
+#     Verarbeitung ueberschriebene Zwischenstaende zeigend) - dieselben Fotos
+#     erschienen dadurch in der Diashow oefter als noetig. ---
+$urlIndex = @{}
 if (Test-Path $listJsonPath) {
     try {
         # WICHTIG: [object[]]$x = ... verwenden, NICHT $x = @(... | ConvertFrom-Json).
@@ -118,6 +127,7 @@ if (Test-Path $listJsonPath) {
         [object[]]$existing = Get-Content $listJsonPath -Raw | ConvertFrom-Json
         foreach ($e in $existing) {
             $images.Add($e)
+            $urlIndex[$e.url] = $images.Count - 1
             if ($e.hash) { [void]$knownHashes.Add($e.hash) }
         }
     } catch {
@@ -381,12 +391,21 @@ function Sync-Once {
         # "cache/" Praefix, weil der lokale Server Code (nas-slideshow/) und
         # Fotos (Downloads/...) aus zwei getrennten Wurzeln bedient.
         $urlPath = ('cache/' + $user + '/' + $destName) -replace ' ', '%20'
-        $images.Add([PSCustomObject]@{
+        $entry = [PSCustomObject]@{
             url   = $urlPath
             user  = $user
             mtime = $unixTime
             hash  = $hash
-        })
+        }
+        # Bei erneuter Verarbeitung derselben Quelle (z.B. nachtraeglich
+        # korrigierte Drehung) den BESTEHENDEN Eintrag ersetzen statt einen
+        # weiteren anzuhaengen - siehe Begruendung bei $urlIndex weiter oben.
+        if ($urlIndex.ContainsKey($urlPath)) {
+            $images[$urlIndex[$urlPath]] = $entry
+        } else {
+            $images.Add($entry)
+            $urlIndex[$urlPath] = $images.Count - 1
+        }
         $newCount++
         $changed = $true
     }

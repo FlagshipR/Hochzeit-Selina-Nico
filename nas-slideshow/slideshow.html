@@ -37,6 +37,11 @@
   .cell img {
     position: relative; width: 100%; height: 100%;
     object-fit: cover;
+    /* Oben statt mittig zuschneiden: bei Hochformat-Fotos in einer breit-
+       flachen Kachel (z.B. die zwei kleinen Zellen im 3er-Collage-Layout)
+       sitzen Gesichter meist im oberen Bilddrittel - mittiger Zuschnitt
+       schneidet die dann eher ab als ein Zuschnitt von oben. */
+    object-position: center top;
   }
   /* Bei einem einzelnen Bild lieber nichts abschneiden - dafuer sorgt der
      unscharfe .bg-Layer trotzdem fuer randfuellende Optik. */

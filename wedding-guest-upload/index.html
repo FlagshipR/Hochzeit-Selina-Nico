@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hochzeitsfotos hochladen</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #faf7f2;
+    --card: #ffffff;
+    --text: #2b2622;
+    --muted: #8a8074;
+    --accent: #a9765a;
+    --accent-dark: #8a5f47;
+    --border: #e7ddd1;
+    --success: #4b7a51;
+    --error: #b3453b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 24px 16px 64px;
+  }
+  .wrap {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+  p.sub {
+    color: var(--muted);
+    margin: 0 0 24px;
+    font-size: 0.95rem;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  input[type="text"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 1rem;
+    color: var(--text);
+    background: var(--bg);
+  }
+  input[type="text"]:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: -1px;
+  }
+  #dropZone {
+    margin-top: 16px;
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 28px 16px;
+    text-align: center;
+    color: var(--muted);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  #dropZone.drag {
+    border-color: var(--accent);
+    background: #f5ece4;
+  }
+  #dropZone button {
+    margin-top: 10px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+  #dropZone button:hover { background: var(--accent-dark); }
+  #fileInput { display: none; }
+
+  #fileList {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .file-row {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .file-name {
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .file-progress {
+    background: var(--border);
+    border-radius: 4px;
+    height: 6px;
+    overflow: hidden;
+  }
+  .file-progress-bar {
+    background: var(--accent);
+    height: 100%;
+    width: 0%;
+    transition: width 0.2s;
+  }
+  .file-row.is-done .file-progress-bar { background: var(--success); }
+  .file-row.is-error .file-progress-bar { background: var(--error); }
+  .file-status {
+    margin-top: 6px;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  .file-row.is-done .file-status { color: var(--success); }
+  .file-row.is-error .file-status { color: var(--error); }
+
+  #retryAllBtn {
+    display: block;
+    margin: 0 0 16px auto;
+    background: none;
+    border: 1px solid var(--error);
+    color: var(--error);
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+  #retryAllBtn[hidden] {
+    display: none;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Hochzeitsfotos hochladen</h1>
+  <p class="sub">Kein Login nötig. Lädt in Originalqualität hoch – bricht die Verbindung ab, geht's beim nächsten Versuch automatisch dort weiter, wo es aufgehört hat.</p>
+
+  <div class="card">
+    <label for="guestName">Dein Name</label>
+    <input type="text" id="guestName" placeholder="z. B. Julia" autocomplete="name">
+
+    <div id="dropZone">
+      Fotos/Videos hierher ziehen oder
+      <div><button type="button" onclick="document.getElementById('fileInput').click()">Dateien auswählen</button></div>
+      <input type="file" id="fileInput" multiple accept="image/*,video/*">
+    </div>
+  </div>
+
+  <button id="retryAllBtn" hidden>Fehlgeschlagene erneut versuchen</button>
+
+  <div id="fileList"></div>
+</div>
+<script src="upload.js"></script>
+</body>
+</html>

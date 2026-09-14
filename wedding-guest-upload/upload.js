@@ -80,17 +80,28 @@ function addFiles(files) {
     };
     queue.push(entry);
     renderRow(entry);
-    computeFileId(entry).then(() => scheduleUpload(entry));
+    computeFileId(entry);
+    scheduleUpload(entry);
   }
 }
 
-async function computeFileId(entry) {
+function computeFileId(entry) {
   // Deterministisch aus Gast+Dateiname+Groesse, nicht zufaellig - siehe
-  // Datei-Kommentar oben. SHA-256 nur, damit ein beliebiger Dateiname sicher
-  // als Dateiname der Zwischendatei auf dem Server verwendet werden kann.
+  // Datei-Kommentar oben. Bewusst KEIN crypto.subtle (Web Crypto API): die
+  // ist nur in "sicheren Kontexten" verfuegbar (https:// oder localhost) -
+  // beim Testen ueber die blanke NAS-IP (http://192.168.178.21:8081, kein
+  // https, kein localhost) ist sie undefined, crypto.subtle.digest() wirft
+  // dann und die Datei blieb lautlos fuer immer bei "Wartet". Eine simple
+  // FNV-1a-Hashfunktion braucht keine Secure-Context-Freigabe und muss hier
+  // auch nicht kryptographisch sicher sein - dient nur als stabile ID zur
+  // Wiederaufnahme-Erkennung, nicht als Sicherheitsgrenze.
   const raw = `${entry.guest}|${entry.filename}|${entry.totalSize}`;
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw));
-  entry.fileId = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < raw.length; i++) {
+    hash ^= raw.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  entry.fileId = (hash >>> 0).toString(16).padStart(8, '0');
 }
 
 function scheduleUpload(entry) {

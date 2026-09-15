@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Willkommen</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #faf7f2;
+    --text: #2b2622;
+    --muted: #8a8074;
+    --accent: #a9765a;
+    --accent-dark: #8a5f47;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: #fff;
+    overflow: hidden;
+  }
+  .slideshow {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+  }
+  .slideshow img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 1.5s ease-in-out;
+  }
+  .slideshow img.active { opacity: 1; }
+  .slideshow::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.15) 40%, rgba(0,0,0,0.55) 100%);
+  }
+
+  .content {
+    position: relative;
+    z-index: 1;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 24px;
+  }
+  h1 {
+    font-size: 1.8rem;
+    font-weight: 600;
+    margin: 0 0 8px;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.5);
+  }
+  p.sub {
+    margin: 0 0 32px;
+    font-size: 1rem;
+    color: rgba(255,255,255,0.9);
+    text-shadow: 0 1px 8px rgba(0,0,0,0.5);
+  }
+
+  #startBtn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 16px 32px;
+    border-radius: 999px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+    transition: background 0.15s, transform 0.15s;
+  }
+  #startBtn:hover { background: var(--accent-dark); transform: scale(1.03); }
+  #startBtn:active { transform: scale(0.98); }
+
+  #musicArea {
+    display: none;
+    width: min(90vw, 420px);
+    margin-bottom: 20px;
+  }
+  #musicArea iframe {
+    border-radius: 12px;
+    display: block;
+    width: 100%;
+  }
+
+  #continueBtn {
+    display: none;
+    margin-top: 8px;
+    background: #fff;
+    color: var(--accent-dark);
+    border: none;
+    padding: 14px 30px;
+    border-radius: 999px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+    transition: transform 0.15s;
+  }
+  #continueBtn:hover { transform: scale(1.03); }
+</style>
+</head>
+<body>
+  <div class="slideshow" id="slideshow"></div>
+
+  <div class="content">
+    <h1>Selina &amp; Nicolai</h1>
+    <p class="sub">Schön, dass du dabei warst.</p>
+
+    <button id="startBtn">▶ Musik &amp; Fotos starten</button>
+
+    <div id="musicArea">
+      <iframe id="spotifyFrame"
+        style="border-radius:12px"
+        src=""
+        width="100%" height="152" frameBorder="0"
+        allowfullscreen=""
+        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+        loading="lazy"></iframe>
+    </div>
+
+    <a id="continueBtn" href="./">Jetzt eigene Fotos hochladen →</a>
+  </div>
+
+<script>
+  const PHOTOS = [
+    'slideshow-photos/PB_0003.JPG',
+    'slideshow-photos/PB_0115.JPG',
+    'slideshow-photos/PB_0025.JPG',
+    'slideshow-photos/PB_0026.JPG',
+    'slideshow-photos/IMG_5561.jpeg',
+    'slideshow-photos/IMG_5563.jpeg',
+    'slideshow-photos/1000062689.jpg',
+    'slideshow-photos/1000062850.jpg',
+    'slideshow-photos/1000062632.jpg',
+  ];
+  const SPOTIFY_TRACK_ID = '1ELMCVbADOtZj8tYdS01nI';
+  const SLIDE_INTERVAL_MS = 4500;
+
+  const slideshowEl = document.getElementById('slideshow');
+  let currentIndex = 0;
+  const imgEls = PHOTOS.map((src, i) => {
+    const img = document.createElement('img');
+    img.src = src;
+    img.alt = '';
+    if (i === 0) img.classList.add('active');
+    slideshowEl.appendChild(img);
+    return img;
+  });
+
+  function nextSlide() {
+    imgEls[currentIndex].classList.remove('active');
+    currentIndex = (currentIndex + 1) % imgEls.length;
+    imgEls[currentIndex].classList.add('active');
+  }
+  setInterval(nextSlide, SLIDE_INTERVAL_MS);
+
+  // Musik startet erst nach echtem Klick (Nutzer-Geste) - Browser blockieren
+  // Autoplay mit Ton sonst grundsaetzlich, das laesst sich nicht per Code
+  // umgehen. Das iframe-src erst JETZT setzen (statt schon beim Laden der
+  // Seite) plus "&autoplay=1" reicht Spotify als Signal, direkt loszulegen,
+  // weil es unmittelbare Folge eines Klicks ist.
+  document.getElementById('startBtn').addEventListener('click', () => {
+    document.getElementById('spotifyFrame').src =
+      `https://open.spotify.com/embed/track/${SPOTIFY_TRACK_ID}?autoplay=1`;
+    document.getElementById('musicArea').style.display = 'block';
+    document.getElementById('continueBtn').style.display = 'inline-block';
+    document.getElementById('startBtn').style.display = 'none';
+  });
+</script>
+</body>
+</html>

@@ -52,9 +52,22 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
     text-align: center;
     padding: 24px;
+  }
+  .top-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 12vh;
+  }
+  .bottom-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    padding-bottom: 16px;
   }
   h1 {
     font-size: 1.8rem;
@@ -63,10 +76,16 @@
     text-shadow: 0 2px 12px rgba(0,0,0,0.5);
   }
   p.sub {
-    margin: 0 0 32px;
+    margin: 8px 0;
     font-size: 1rem;
     color: rgba(255,255,255,0.9);
     text-shadow: 0 1px 8px rgba(0,0,0,0.5);
+  }
+  .olive {
+    width: min(70vw, 260px);
+    height: auto;
+    margin: 6px 0;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
   }
 
   #startBtn {
@@ -87,7 +106,6 @@
   #musicArea {
     display: none;
     width: min(90vw, 420px);
-    margin-top: 64px;
     margin-bottom: 20px;
   }
   #musicArea iframe {
@@ -118,22 +136,28 @@
   <div class="slideshow" id="slideshow"></div>
 
   <div class="content">
-    <h1>Selina &amp; Nicolai</h1>
-    <p class="sub">Schön, dass du dabei warst.</p>
+    <div class="top-group">
+      <h1>Selina &amp; Nicolai</h1>
+      <img class="olive" src="olivenzweig-oben.png" alt="">
+      <p class="sub">Schön, dass du dabei warst.</p>
+      <img class="olive" src="olivenzweig-unten.png" alt="">
 
-    <button id="startBtn">▶ Musik &amp; Fotos starten</button>
-
-    <div id="musicArea">
-      <iframe id="spotifyFrame"
-        style="border-radius:12px"
-        src=""
-        width="100%" height="152" frameBorder="0"
-        allowfullscreen=""
-        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-        loading="lazy"></iframe>
+      <button id="startBtn">▶ Musik &amp; Fotos starten</button>
     </div>
 
-    <a id="continueBtn" href="./">Jetzt eigene Fotos hochladen →</a>
+    <div class="bottom-group">
+      <div id="musicArea">
+        <iframe id="spotifyFrame"
+          style="border-radius:12px"
+          src=""
+          width="100%" height="152" frameBorder="0"
+          allowfullscreen=""
+          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+          loading="lazy"></iframe>
+      </div>
+
+      <a id="continueBtn" href="./">Jetzt eigene Fotos hochladen →</a>
+    </div>
   </div>
 
 <script>

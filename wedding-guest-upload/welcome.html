@@ -193,7 +193,7 @@
 </style>
 </head>
 <body>
-  <div class="slideshow" id="slideshow"></div>
+  <div class="slideshow"><img src="slideshow-photos/IMG_5563.jpeg" alt="" class="active"></div>
 
   <img class="corner-olive top-left" src="olivenzweig-oben.png" alt="">
   <img class="corner-olive bottom-right" src="olivenzweig-unten.png" alt="">
@@ -225,37 +225,11 @@
   </div>
 
 <script>
-  const PHOTOS = [
-    'slideshow-photos/PB_0003.JPG',
-    'slideshow-photos/PB_0115.JPG',
-    'slideshow-photos/PB_0025.JPG',
-    'slideshow-photos/PB_0026.JPG',
-    'slideshow-photos/IMG_5561.jpeg',
-    'slideshow-photos/IMG_5563.jpeg',
-    'slideshow-photos/1000062689.jpg',
-    'slideshow-photos/1000062850.jpg',
-    'slideshow-photos/1000062632.jpg',
-  ];
+  // Nur noch EIN festes Hero-Foto auf dieser Seite (Nutzerwunsch: "genau
+  // das Bild", IMG_5563 - die Stirnkuss-Aufnahme vor der Holztuer), keine
+  // Rotation mehr hier. Die rotierende Slideshow mit allen Gaeste-/
+  // Fotobox-Bildern lebt jetzt stattdessen auf Seite 2 (index.html).
   const SPOTIFY_PLAYLIST_ID = '0efAXCBOjiHjHb1EQ1ssuB';
-  const SLIDE_INTERVAL_MS = 4500;
-
-  const slideshowEl = document.getElementById('slideshow');
-  let currentIndex = 0;
-  const imgEls = PHOTOS.map((src, i) => {
-    const img = document.createElement('img');
-    img.src = src;
-    img.alt = '';
-    if (i === 0) img.classList.add('active');
-    slideshowEl.appendChild(img);
-    return img;
-  });
-
-  function nextSlide() {
-    imgEls[currentIndex].classList.remove('active');
-    currentIndex = (currentIndex + 1) % imgEls.length;
-    imgEls[currentIndex].classList.add('active');
-  }
-  setInterval(nextSlide, SLIDE_INTERVAL_MS);
 
   // Musik startet erst nach echtem Klick (Nutzer-Geste) - Browser blockieren
   // Autoplay mit Ton sonst grundsaetzlich, das laesst sich nicht per Code

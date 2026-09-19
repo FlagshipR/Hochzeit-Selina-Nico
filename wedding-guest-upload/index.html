@@ -25,7 +25,34 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     padding: 24px 16px 64px;
   }
+  .slideshow {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+  }
+  .slideshow img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 15%;
+    opacity: 0;
+    transition: opacity 1.5s ease-in-out;
+  }
+  .slideshow img.active { opacity: 1; }
+  .slideshow::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    /* Deutlich kraeftigerer Weiss-Schleier als auf welcome.html - hier
+       steht ein Formular drauf, das durchgehend lesbar/bedienbar bleiben
+       muss, das hat Vorrang vor maximaler Fotowirkung. */
+    background: rgba(250, 247, 242, 0.82);
+  }
   .wrap {
+    position: relative;
+    z-index: 1;
     max-width: 640px;
     margin: 0 auto;
   }
@@ -148,6 +175,7 @@
 </style>
 </head>
 <body>
+<div class="slideshow" id="slideshow"></div>
 <div class="wrap">
   <h1>Hochzeitsfotos hochladen</h1>
   <p class="sub">Kein Login nötig. Lädt in Originalqualität hoch – bricht die Verbindung ab, geht's beim nächsten Versuch automatisch dort weiter, wo es aufgehört hat.</p>
@@ -167,6 +195,40 @@
 
   <div id="fileList"></div>
 </div>
+<script>
+  // Rotierende Foto-Slideshow im Hintergrund - vom Hero-Foto auf
+  // welcome.html hierher verlagert (Nutzerwunsch: "Slideshow soll fuer
+  // Seite 2 genutzt werden"), damit auch waehrend des Ausfuellens/
+  // Hochladens noch Stimmung da ist, ohne vom eigentlichen Formular
+  // abzulenken (siehe kraeftigerer Weiss-Schleier oben in der CSS).
+  const SLIDESHOW_PHOTOS = [
+    'slideshow-photos/PB_0003.JPG',
+    'slideshow-photos/PB_0115.JPG',
+    'slideshow-photos/PB_0025.JPG',
+    'slideshow-photos/PB_0026.JPG',
+    'slideshow-photos/IMG_5561.jpeg',
+    'slideshow-photos/IMG_5563.jpeg',
+    'slideshow-photos/1000062689.jpg',
+    'slideshow-photos/1000062850.jpg',
+    'slideshow-photos/1000062632.jpg',
+  ];
+  const SLIDE_INTERVAL_MS = 4500;
+  const slideshowEl = document.getElementById('slideshow');
+  let slideIndex = 0;
+  const slideImgEls = SLIDESHOW_PHOTOS.map((src, i) => {
+    const img = document.createElement('img');
+    img.src = src;
+    img.alt = '';
+    if (i === 0) img.classList.add('active');
+    slideshowEl.appendChild(img);
+    return img;
+  });
+  setInterval(() => {
+    slideImgEls[slideIndex].classList.remove('active');
+    slideIndex = (slideIndex + 1) % slideImgEls.length;
+    slideImgEls[slideIndex].classList.add('active');
+  }, SLIDE_INTERVAL_MS);
+</script>
 <script src="upload.js"></script>
 </body>
 </html>

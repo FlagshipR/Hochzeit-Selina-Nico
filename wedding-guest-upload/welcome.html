@@ -146,7 +146,7 @@
     'slideshow-photos/1000062850.jpg',
     'slideshow-photos/1000062632.jpg',
   ];
-  const SPOTIFY_TRACK_ID = '1ELMCVbADOtZj8tYdS01nI';
+  const SPOTIFY_PLAYLIST_ID = '0efAXCBOjiHjHb1EQ1ssuB';
   const SLIDE_INTERVAL_MS = 4500;
 
   const slideshowEl = document.getElementById('slideshow');
@@ -174,7 +174,7 @@
   // weil es unmittelbare Folge eines Klicks ist.
   document.getElementById('startBtn').addEventListener('click', () => {
     document.getElementById('spotifyFrame').src =
-      `https://open.spotify.com/embed/track/${SPOTIFY_TRACK_ID}?autoplay=1`;
+      `https://open.spotify.com/embed/playlist/${SPOTIFY_PLAYLIST_ID}?autoplay=1`;
     document.getElementById('musicArea').style.display = 'block';
     document.getElementById('continueBtn').style.display = 'inline-block';
     document.getElementById('startBtn').style.display = 'none';

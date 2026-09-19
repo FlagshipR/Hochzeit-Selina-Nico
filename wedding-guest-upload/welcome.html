@@ -74,47 +74,45 @@
     width: 100%;
     padding-bottom: 16px;
   }
-  .invite-card {
-    background: rgba(250, 247, 242, 0.95);
-    border-radius: 18px;
-    padding: 36px 32px 28px;
-    box-shadow: 0 12px 48px rgba(0,0,0,0.3);
-  }
   .label {
     font-family: 'Playfair Display', serif;
     font-size: 0.8rem;
     letter-spacing: 4px;
     text-transform: uppercase;
-    color: var(--muted);
-    margin: 0 0 4px;
+    color: rgba(255,255,255,0.92);
+    text-shadow: 0 1px 10px rgba(0,0,0,0.6);
+    margin: 0;
   }
   h1.script-name {
     font-family: 'Alex Brush', cursive;
     font-weight: 400;
-    font-size: 3.4rem;
+    font-size: 4rem;
     line-height: 1.15;
-    color: var(--sage);
+    color: #fff;
+    text-shadow: 0 2px 16px rgba(0,0,0,0.65);
     margin: 0;
   }
   .amp {
     display: block;
     font-family: 'Playfair Display', serif;
     font-style: italic;
-    font-size: 1.4rem;
-    color: var(--accent);
+    font-size: 1.5rem;
+    color: #f3d9c4;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.65);
     margin: 2px 0;
   }
   p.sub {
     font-family: 'Playfair Display', serif;
     font-style: italic;
-    margin: 14px 0 0;
-    font-size: 1rem;
-    color: var(--text);
+    margin: 0;
+    font-size: 1.05rem;
+    color: rgba(255,255,255,0.95);
+    text-shadow: 0 1px 10px rgba(0,0,0,0.6);
   }
   .olive {
     width: min(60vw, 220px);
     height: auto;
-    margin: 8px 0;
+    filter: drop-shadow(0 2px 10px rgba(0,0,0,0.4));
   }
 
   #startBtn {
@@ -166,15 +164,13 @@
 
   <div class="content">
     <div class="top-group">
-      <div class="invite-card">
-        <p class="label">12. September 2026</p>
-        <img class="olive" src="olivenzweig-oben.png" alt="">
-        <h1 class="script-name">Selina</h1>
-        <span class="amp">&amp;</span>
-        <h1 class="script-name">Nicolai</h1>
-        <img class="olive" src="olivenzweig-unten.png" alt="">
-        <p class="sub">Schön, dass du dabei warst.</p>
-      </div>
+      <p class="label">Unsere Hochzeit · 12.09.2026</p>
+      <img class="olive" src="olivenzweig-oben.png" alt="">
+      <h1 class="script-name">Selina</h1>
+      <span class="amp">&amp;</span>
+      <h1 class="script-name">Nicolai</h1>
+      <img class="olive" src="olivenzweig-unten.png" alt="">
+      <p class="sub">Schön, dass du dabei warst.</p>
 
       <button id="startBtn">▶ Musik &amp; Fotos starten</button>
     </div>

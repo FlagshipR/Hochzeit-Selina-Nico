@@ -6,7 +6,7 @@
 <title>Willkommen</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Playfair+Display:ital@0;1&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,400&display=swap" rel="stylesheet">
 <style>
   :root {
     color-scheme: light;
@@ -46,7 +46,10 @@
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.15) 40%, rgba(0,0,0,0.55) 100%);
+    /* Kein flaechiger Grauschleier mehr - Foto soll seine natuerliche
+       Waerme/Kontrast behalten. Nur ein schmaler, weicher Rand oben/unten
+       fuer die Textlesbarkeit, die Bildmitte bleibt unangetastet. */
+    background: linear-gradient(180deg, rgba(0,0,0,0.30) 0%, rgba(0,0,0,0) 22%, rgba(0,0,0,0) 60%, rgba(0,0,0,0.45) 100%);
   }
 
   .content {
@@ -64,8 +67,10 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 28px;
-    padding-top: 8vh;
+    gap: 10px;
+    /* Namen sollen unterhalb der Gesichter beginnen, nicht mittig auf der
+       ganzen Seite - erst ab knapp der Bildmitte startet der Text-Cluster. */
+    padding-top: 44vh;
   }
   .bottom-group {
     display: flex;
@@ -76,58 +81,86 @@
   }
   .label {
     font-family: 'Playfair Display', serif;
-    font-size: 0.8rem;
-    letter-spacing: 4px;
+    font-size: 0.65rem;
+    letter-spacing: 1.5px;
+    white-space: nowrap;
     text-transform: uppercase;
-    color: rgba(255,255,255,0.92);
-    text-shadow: 0 1px 10px rgba(0,0,0,0.6);
+    text-align: center;
+    color: rgba(255,255,255,0.95);
+    text-shadow: 0 1px 8px rgba(0,0,0,0.5);
+    margin: 0;
+    position: fixed;
+    z-index: 2;
+    top: max(18px, env(safe-area-inset-top));
+    left: 0;
+    right: 0;
+  }
+  h1.wedding-name {
+    font-family: 'Playfair Display', serif;
+    font-weight: 600;
+    font-size: min(15vw, 4.6rem);
+    line-height: 1.05;
+    color: #fdfbf7;
+    text-shadow: 0 2px 18px rgba(0,0,0,0.55);
     margin: 0;
   }
-  h1.script-name {
-    font-family: 'Alex Brush', cursive;
-    font-weight: 400;
-    font-size: 4rem;
-    line-height: 1.15;
-    color: #fff;
-    text-shadow: 0 2px 16px rgba(0,0,0,0.65);
-    margin: 0;
+  .amp-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 2px 0;
   }
-  .amp {
-    display: block;
+  .amp-row .rule {
+    width: 34px;
+    height: 1px;
+    background: rgba(255,255,255,0.65);
+  }
+  .amp-row .amp {
     font-family: 'Playfair Display', serif;
     font-style: italic;
-    font-size: 1.5rem;
-    color: #f3d9c4;
-    text-shadow: 0 2px 12px rgba(0,0,0,0.65);
-    margin: 2px 0;
+    font-weight: 500;
+    font-size: 1.6rem;
+    color: #fdfbf7;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.55);
   }
   p.sub {
     font-family: 'Playfair Display', serif;
     font-style: italic;
-    margin: 0;
+    margin: 8px 0 0;
     font-size: 1.05rem;
     color: rgba(255,255,255,0.95);
-    text-shadow: 0 1px 10px rgba(0,0,0,0.6);
+    text-shadow: 0 1px 10px rgba(0,0,0,0.55);
   }
-  .olive {
-    width: min(60vw, 220px);
+  .corner-olive {
+    position: fixed;
+    width: min(30vw, 150px);
     height: auto;
-    filter: drop-shadow(0 2px 10px rgba(0,0,0,0.4));
+    z-index: 1;
+    opacity: 0.95;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));
+  }
+  .corner-olive.top-left { top: 0; left: 0; }
+  .corner-olive.bottom-right {
+    bottom: 0;
+    right: 0;
+    transform: rotate(180deg);
   }
 
   #startBtn {
-    background: var(--accent);
+    background: rgba(116, 131, 106, 0.8);
     color: #fff;
     border: none;
-    padding: 16px 32px;
+    padding: 14px 30px;
     border-radius: 999px;
-    font-size: 1.1rem;
-    font-weight: 600;
+    font-size: 1.02rem;
+    font-weight: 500;
+    letter-spacing: 0.3px;
     cursor: pointer;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+    margin-top: 14px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.25);
     transition: background 0.15s, transform 0.15s;
   }
-  #startBtn:hover { background: var(--accent-dark); transform: scale(1.03); }
+  #startBtn:hover { background: rgba(116, 131, 106, 0.95); transform: scale(1.03); }
   #startBtn:active { transform: scale(0.98); }
 
   #musicArea {
@@ -162,14 +195,15 @@
 <body>
   <div class="slideshow" id="slideshow"></div>
 
+  <img class="corner-olive top-left" src="olivenzweig-oben.png" alt="">
+  <img class="corner-olive bottom-right" src="olivenzweig-unten.png" alt="">
+  <p class="label">Unsere Hochzeit · 12.09.2026</p>
+
   <div class="content">
     <div class="top-group">
-      <p class="label">Unsere Hochzeit · 12.09.2026</p>
-      <img class="olive" src="olivenzweig-oben.png" alt="">
-      <h1 class="script-name">Selina</h1>
-      <span class="amp">&amp;</span>
-      <h1 class="script-name">Nicolai</h1>
-      <img class="olive" src="olivenzweig-unten.png" alt="">
+      <h1 class="wedding-name">Selina</h1>
+      <div class="amp-row"><span class="rule"></span><span class="amp">&amp;</span><span class="rule"></span></div>
+      <h1 class="wedding-name">Nicolai</h1>
       <p class="sub">Schön, dass du dabei warst. ♥</p>
 
       <button id="startBtn">▶ Musik &amp; Fotos starten</button>

@@ -10,19 +10,29 @@
 // bisherigen Fortschritt und es wird nur der fehlende Rest uebertragen -
 // ohne dass Client oder Server sich Zustand ueber den Reload hinweg merken
 // muessen.
+//
+// Ablauf bewusst zweistufig (Design-Ueberarbeitung): Dateien auswaehlen ->
+// Vorschau/Zusammenfassung ansehen -> erst per "Erinnerungen senden" wird
+// tatsaechlich hochgeladen. Vorher startete der Upload sofort bei Auswahl -
+// das gab keine Gelegenheit, die Auswahl nochmal zu pruefen.
 
 const CHUNK_SIZE = 5 * 1024 * 1024; // 5 MB - muss mit upload.php uebereinstimmen
 const MAX_RETRIES = 5;
 const MAX_CONCURRENT_FILES = 2;
 const ALLOWED_EXT = ['jpg', 'jpeg', 'png', 'heic', 'heif', 'webp', 'gif', 'mp4', 'mov', 'm4v', '3gp'];
+const VIDEO_EXT = ['mp4', 'mov', 'm4v', '3gp'];
 const NAME_STORAGE_KEY = 'wedding-guest-upload-name';
 
 const els = {
   guestName: document.getElementById('guestName'),
   fileInput: document.getElementById('fileInput'),
+  chooseFilesBtn: document.getElementById('chooseFilesBtn'),
   dropZone: document.getElementById('dropZone'),
   fileList: document.getElementById('fileList'),
+  uploadSummary: document.getElementById('uploadSummary'),
+  submitBtn: document.getElementById('submitBtn'),
   retryAllBtn: document.getElementById('retryAllBtn'),
+  successMsg: document.getElementById('successMsg'),
 };
 
 let queue = [];
@@ -37,6 +47,7 @@ function init() {
     localStorage.setItem(NAME_STORAGE_KEY, els.guestName.value.trim());
   });
 
+  els.chooseFilesBtn.addEventListener('click', () => els.fileInput.click());
   els.fileInput.addEventListener('change', () => {
     addFiles(Array.from(els.fileInput.files));
     els.fileInput.value = '';
@@ -50,6 +61,11 @@ function init() {
   els.dropZone.addEventListener('drop', e => {
     els.dropZone.classList.remove('drag');
     addFiles(Array.from(e.dataTransfer.files));
+  });
+
+  els.submitBtn.addEventListener('click', () => {
+    els.submitBtn.hidden = true;
+    queue.filter(f => f.status === 'waiting').forEach(scheduleUpload);
   });
 
   els.retryAllBtn.addEventListener('click', () => {
@@ -75,14 +91,15 @@ function addFiles(files) {
       uploadedBytes: 0,
       status: 'waiting',
       errorMsg: '',
-      row: null,
+      thumbEl: null,
       fileId: null,
+      isVideo: VIDEO_EXT.includes(ext),
     };
     queue.push(entry);
-    renderRow(entry);
+    renderThumb(entry);
     computeFileId(entry);
-    scheduleUpload(entry);
   }
+  updateSummary();
 }
 
 function computeFileId(entry) {
@@ -109,7 +126,7 @@ function scheduleUpload(entry) {
     startUpload(entry);
   } else {
     entry.status = 'waiting';
-    updateRow(entry);
+    updateThumb(entry);
   }
 }
 
@@ -117,13 +134,13 @@ async function startUpload(entry) {
   activeUploads++;
   entry.status = 'uploading';
   entry.errorMsg = '';
-  updateRow(entry);
+  updateThumb(entry);
 
   try {
     // Serverstand abfragen statt blind bei 0 zu starten - traegt die
     // Wiederaufnahme nach einem Abbruch/Reload (siehe Datei-Kommentar oben).
     entry.uploadedBytes = await getServerOffset(entry.fileId);
-    updateRow(entry);
+    updateThumb(entry);
 
     while (entry.uploadedBytes < entry.totalSize) {
       const chunkIndex = Math.floor(entry.uploadedBytes / CHUNK_SIZE);
@@ -137,15 +154,15 @@ async function startUpload(entry) {
 
       const newOffset = await uploadChunkWithRetry(entry, chunkIndex, blob);
       entry.uploadedBytes = newOffset;
-      updateRow(entry);
+      updateThumb(entry);
     }
 
     entry.status = 'done';
-    updateRow(entry);
+    updateThumb(entry);
   } catch (err) {
     entry.status = 'error';
     entry.errorMsg = err && err.message ? err.message : 'Unbekannter Fehler';
-    updateRow(entry);
+    updateThumb(entry);
   } finally {
     activeUploads--;
     const next = queue.find(f => f.status === 'waiting' && f.fileId);
@@ -193,36 +210,78 @@ function sleep(ms) {
   return new Promise(r => setTimeout(r, ms));
 }
 
-function renderRow(entry) {
-  const row = document.createElement('div');
-  row.className = 'file-row';
-  row.innerHTML = `
-    <div class="file-name"></div>
-    <div class="file-progress"><div class="file-progress-bar"></div></div>
-    <div class="file-status"></div>
-  `;
-  row.querySelector('.file-name').textContent = entry.filename;
-  els.fileList.prepend(row);
-  entry.row = row;
-  updateRow(entry);
+function formatSize(bytes) {
+  const mb = bytes / (1024 * 1024);
+  return mb >= 1000 ? `${(mb / 1024).toFixed(1)} GB` : `${Math.round(mb)} MB`;
 }
 
-function updateRow(entry) {
-  if (!entry.row) return;
-  const pct = entry.totalSize ? Math.round((entry.uploadedBytes / entry.totalSize) * 100) : 0;
-  entry.row.querySelector('.file-progress-bar').style.width = pct + '%';
-  const statusEl = entry.row.querySelector('.file-status');
-  entry.row.classList.remove('is-done', 'is-error');
-  if (entry.status === 'done') {
-    statusEl.textContent = 'Fertig ✓';
-    entry.row.classList.add('is-done');
-  } else if (entry.status === 'error') {
-    statusEl.textContent = 'Fehler – ' + entry.errorMsg;
-    entry.row.classList.add('is-error');
-  } else if (entry.status === 'waiting') {
-    statusEl.textContent = 'Wartet…';
+function updateSummary() {
+  const count = queue.length;
+  els.uploadSummary.hidden = count === 0;
+  els.submitBtn.hidden = count === 0 || !queue.some(f => f.status === 'waiting');
+  if (count === 0) return;
+  const totalBytes = queue.reduce((sum, f) => sum + f.totalSize, 0);
+  els.uploadSummary.textContent = `${count} ${count === 1 ? 'Datei' : 'Dateien'} ausgewählt · ${formatSize(totalBytes)}`;
+}
+
+function renderThumb(entry) {
+  const thumb = document.createElement('div');
+  thumb.className = 'thumb';
+
+  if (entry.isVideo) {
+    const video = document.createElement('video');
+    video.src = URL.createObjectURL(entry.file);
+    video.muted = true;
+    video.preload = 'metadata';
+    thumb.appendChild(video);
+    const badge = document.createElement('span');
+    badge.className = 'video-badge';
+    badge.textContent = '▶ Video';
+    thumb.appendChild(badge);
   } else {
-    statusEl.textContent = pct + '%';
+    const img = document.createElement('img');
+    img.src = URL.createObjectURL(entry.file);
+    img.alt = entry.filename;
+    thumb.appendChild(img);
+  }
+
+  const progress = document.createElement('div');
+  progress.className = 'thumb-progress';
+  progress.innerHTML = '<div class="thumb-progress-bar"></div>';
+  thumb.appendChild(progress);
+
+  const status = document.createElement('div');
+  status.className = 'thumb-status';
+  thumb.appendChild(status);
+
+  els.fileList.appendChild(thumb);
+  entry.thumbEl = thumb;
+  updateThumb(entry);
+}
+
+function updateThumb(entry) {
+  if (!entry.thumbEl) return;
+  const pct = entry.totalSize ? Math.round((entry.uploadedBytes / entry.totalSize) * 100) : 0;
+  entry.thumbEl.querySelector('.thumb-progress-bar').style.width = pct + '%';
+  const statusEl = entry.thumbEl.querySelector('.thumb-status');
+  entry.thumbEl.classList.remove('is-done', 'is-error');
+  if (entry.status === 'done') {
+    statusEl.textContent = '✓';
+    entry.thumbEl.classList.add('is-done');
+  } else if (entry.status === 'error') {
+    statusEl.textContent = '✗';
+    entry.thumbEl.title = entry.errorMsg;
+    entry.thumbEl.classList.add('is-error');
+  } else {
+    statusEl.textContent = '';
   }
   els.retryAllBtn.hidden = !queue.some(f => f.status === 'error');
+  updateSummary();
+  checkAllDone();
+}
+
+function checkAllDone() {
+  if (queue.length === 0) return;
+  const allDone = queue.every(f => f.status === 'done');
+  els.successMsg.hidden = !allDone;
 }

@@ -3,16 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hochzeitsfotos hochladen</title>
+<title>Unsere Momente</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,400&display=swap" rel="stylesheet">
+<script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
 <style>
   :root {
     color-scheme: light;
     --bg: #faf7f2;
-    --card: #ffffff;
+    --card: #fffdfa;
     --text: #2b2622;
     --muted: #8a8074;
     --accent: #a9765a;
     --accent-dark: #8a5f47;
+    --sage: #74836a;
+    --sage-light: #97a68c;
     --border: #e7ddd1;
     --success: #4b7a51;
     --error: #b3453b;
@@ -23,184 +29,471 @@
     background: var(--bg);
     color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    padding: 24px 16px 64px;
   }
-  .slideshow {
+  .serif { font-family: 'Playfair Display', serif; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 20px 60px; }
+
+  /* ---------- Header ---------- */
+  header.site-header {
+    text-align: center;
+    padding: 22px 60px 6px;
+    font-family: 'Playfair Display', serif;
+    font-size: 0.7rem;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  header.site-header a {
+    color: var(--muted);
+    text-decoration: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ---------- Musik-Button (klein, floating) ---------- */
+  #musicToggle {
     position: fixed;
-    inset: 0;
-    z-index: 0;
+    top: 14px;
+    right: 14px;
+    z-index: 50;
+    background: rgba(116, 131, 106, 0.85);
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 9px 16px;
+    font-size: 0.8rem;
+    font-family: 'Playfair Display', serif;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+    transition: background 0.15s, transform 0.15s;
+    min-height: 40px;
   }
-  .slideshow img {
+  #musicToggle:hover { background: rgba(116, 131, 106, 1); transform: scale(1.04); }
+  #musicEmbed { position: fixed; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
+
+  /* ---------- Intro ---------- */
+  .intro {
+    text-align: center;
+    padding: 30px 20px 6px;
+  }
+  .intro h2 {
+    font-family: 'Playfair Display', serif;
+    font-weight: 600;
+    font-size: 2.3rem;
+    color: var(--text);
+    margin: 0 0 10px;
+  }
+  .intro p {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    color: var(--muted);
+    margin: 0;
+    font-size: 1.02rem;
+  }
+  .divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin: 22px 0;
+    opacity: 0.85;
+  }
+  .divider .line { width: 44px; height: 1px; background: var(--border); }
+  .divider img { width: 34px; height: auto; opacity: 0.9; }
+
+  /* ---------- Erinnerungs-Slideshow ---------- */
+  .memory-slideshow {
+    position: relative;
+    width: 100%;
+    height: min(58vh, 540px);
+    border-radius: 16px;
+    overflow: hidden;
+    background: #211f1b;
+    box-shadow: 0 10px 40px rgba(43,38,34,0.18);
+  }
+  .slide-bg {
+    position: absolute;
+    inset: -30px;
+    background-size: cover;
+    background-position: center;
+    filter: blur(38px) brightness(0.72) saturate(1.05);
+    transform: scale(1.2);
+    opacity: 0;
+    transition: opacity 1s ease;
+  }
+  .slide-bg.active { opacity: 1; }
+  .slide-viewport { position: absolute; inset: 0; }
+  .slide-img {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
-    object-fit: cover;
-    object-position: center 15%;
+    object-fit: contain;
     opacity: 0;
-    transition: opacity 1.5s ease-in-out;
+    transition: opacity 1s ease;
   }
-  .slideshow img.active { opacity: 1; }
-  .slideshow::after {
-    content: "";
+  .slide-img.active { opacity: 1; }
+  .slide-arrow {
     position: absolute;
-    inset: 0;
-    /* Deutlich kraeftigerer Weiss-Schleier als auf welcome.html - hier
-       steht ein Formular drauf, das durchgehend lesbar/bedienbar bleiben
-       muss, das hat Vorrang vor maximaler Fotowirkung. */
-    background: rgba(250, 247, 242, 0.82);
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255,255,255,0.85);
+    color: var(--text);
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 1.3rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    transition: background 0.15s;
   }
-  .wrap {
-    position: relative;
-    z-index: 1;
-    max-width: 640px;
-    margin: 0 auto;
+  .slide-arrow:hover { background: #fff; }
+  .slide-arrow.prev { left: 12px; }
+  .slide-arrow.next { right: 12px; }
+  .slide-dots {
+    position: absolute;
+    bottom: 14px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 7px;
   }
-  h1 {
-    font-size: 1.4rem;
+  .slide-dots .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.45);
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+    padding: 0;
+    border: none;
+  }
+  .slide-dots .dot.active { background: #fff; transform: scale(1.25); }
+
+  /* ---------- Teile-deine-Erinnerungen ---------- */
+  .share-intro { text-align: center; padding: 44px 20px 4px; }
+  .share-intro h2 {
+    font-family: 'Playfair Display', serif;
     font-weight: 600;
-    margin: 0 0 4px;
+    font-size: 1.7rem;
+    margin: 0 0 10px;
   }
-  p.sub {
-    color: var(--muted);
-    margin: 0 0 24px;
-    font-size: 0.95rem;
-  }
-  .card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 16px;
-  }
+  .share-intro p { color: var(--muted); margin: 0; line-height: 1.5; }
+
+  .upload-card { margin-top: 26px; }
   label {
     display: block;
-    font-size: 0.85rem;
+    font-family: 'Playfair Display', serif;
+    font-size: 0.95rem;
     font-weight: 600;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
   }
   input[type="text"] {
     width: 100%;
-    padding: 10px 12px;
+    padding: 12px 14px;
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 1rem;
     color: var(--text);
-    background: var(--bg);
+    background: var(--card);
+    min-height: 44px;
   }
   input[type="text"]:focus {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--sage);
     outline-offset: -1px;
   }
   #dropZone {
-    margin-top: 16px;
-    border: 2px dashed var(--border);
-    border-radius: 10px;
-    padding: 28px 16px;
+    margin-top: 20px;
+    border: 1.5px dashed var(--sage-light);
+    background: rgba(151, 166, 140, 0.07);
+    border-radius: 18px;
+    padding: 40px 20px;
     text-align: center;
     color: var(--muted);
     cursor: pointer;
     transition: border-color 0.15s, background 0.15s;
   }
   #dropZone.drag {
-    border-color: var(--accent);
-    background: #f5ece4;
+    border-color: var(--sage);
+    background: rgba(151, 166, 140, 0.15);
+  }
+  #dropZone .drop-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  #dropZone .drop-or {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin: 8px 0;
   }
   #dropZone button {
-    margin-top: 10px;
-    background: var(--accent);
+    margin-top: 4px;
+    background: var(--sage);
     color: #fff;
     border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
+    padding: 12px 26px;
+    border-radius: 999px;
     font-size: 0.95rem;
     cursor: pointer;
+    min-height: 44px;
   }
   #dropZone button:hover { background: var(--accent-dark); }
   #fileInput { display: none; }
 
+  .upload-summary {
+    margin-top: 22px;
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    color: var(--muted);
+    text-align: center;
+  }
+  #submitBtn {
+    display: block;
+    margin: 18px auto 0;
+    background: var(--sage);
+    color: #fff;
+    border: none;
+    padding: 14px 34px;
+    border-radius: 999px;
+    font-size: 1.02rem;
+    cursor: pointer;
+    min-height: 44px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    transition: background 0.15s, transform 0.15s;
+  }
+  #submitBtn:hover { background: var(--accent-dark); transform: scale(1.02); }
+  #submitBtn[hidden] { display: none; }
+
   #fileList {
-    display: flex;
-    flex-direction: column;
+    margin-top: 22px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
     gap: 10px;
   }
-  .file-row {
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 12px;
-  }
-  .file-name {
-    font-size: 0.85rem;
-    margin-bottom: 6px;
+  .thumb {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 12px;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .file-progress {
     background: var(--border);
-    border-radius: 4px;
-    height: 6px;
-    overflow: hidden;
   }
-  .file-progress-bar {
-    background: var(--accent);
+  .thumb img, .thumb video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .thumb .video-badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    border-radius: 999px;
+  }
+  .thumb .thumb-progress {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 4px;
+    background: rgba(255,255,255,0.4);
+  }
+  .thumb .thumb-progress-bar {
     height: 100%;
     width: 0%;
+    background: var(--sage);
     transition: width 0.2s;
   }
-  .file-row.is-done .file-progress-bar { background: var(--success); }
-  .file-row.is-error .file-progress-bar { background: var(--error); }
-  .file-status {
-    margin-top: 6px;
-    font-size: 0.8rem;
-    color: var(--muted);
+  .thumb.is-done .thumb-progress-bar { background: var(--success); }
+  .thumb.is-error .thumb-progress-bar { background: var(--error); }
+  .thumb .thumb-status {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.4);
+    color: #fff;
+    font-size: 1.1rem;
+    opacity: 0;
+    transition: opacity 0.2s;
   }
-  .file-row.is-done .file-status { color: var(--success); }
-  .file-row.is-error .file-status { color: var(--error); }
+  .thumb.is-done .thumb-status, .thumb.is-error .thumb-status { opacity: 1; }
+  .thumb.is-error .thumb-status { background: rgba(179,69,59,0.55); }
 
   #retryAllBtn {
     display: block;
-    margin: 0 0 16px auto;
+    margin: 16px auto 0;
     background: none;
     border: 1px solid var(--error);
     color: var(--error);
-    padding: 8px 14px;
-    border-radius: 8px;
+    padding: 9px 16px;
+    border-radius: 999px;
     cursor: pointer;
     font-size: 0.85rem;
+    min-height: 40px;
   }
-  #retryAllBtn[hidden] {
-    display: none;
+  #retryAllBtn[hidden] { display: none; }
+
+  .success-msg {
+    text-align: center;
+    margin-top: 30px;
+    padding: 26px 20px;
+    border-radius: 16px;
+    background: rgba(151, 166, 140, 0.1);
+  }
+  .success-msg[hidden] { display: none; }
+  .success-msg h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    margin: 0 0 6px;
+  }
+  .success-msg p { color: var(--muted); margin: 0; }
+
+  /* ---------- Drohnenvideo ---------- */
+  .drone-section { text-align: center; padding: 64px 20px 10px; }
+  .drone-section h2 {
+    font-family: 'Playfair Display', serif;
+    font-weight: 600;
+    font-size: 1.9rem;
+    margin: 0 0 8px;
+  }
+  .drone-section p.sub {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    color: var(--muted);
+    margin: 0 0 24px;
+  }
+  .drone-video-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 18px;
+    overflow: hidden;
+    background: #1c1a17 center/cover no-repeat;
+    box-shadow: 0 14px 50px rgba(43,38,34,0.2);
+  }
+  .drone-video-wrap video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .video-play-btn {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.9);
+    border: none;
+    font-size: 1.6rem;
+    color: var(--text);
+    cursor: pointer;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+    transition: transform 0.2s, opacity 0.3s;
+  }
+  .video-play-btn:hover { transform: scale(1.06); }
+  .video-play-btn[hidden] { display: none; }
+  .drone-placeholder-note {
+    margin-top: 12px;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  footer.site-footer {
+    text-align: center;
+    padding: 50px 20px 30px;
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  @media (max-width: 480px) {
+    .intro h2 { font-size: 1.9rem; }
+    .memory-slideshow { height: 52vh; border-radius: 12px; }
   }
 </style>
 </head>
 <body>
-<div class="slideshow" id="slideshow"></div>
-<div class="wrap">
-  <h1>Hochzeitsfotos hochladen</h1>
-  <p class="sub">Kein Login nötig. Lädt in Originalqualität hoch – bricht die Verbindung ab, geht's beim nächsten Versuch automatisch dort weiter, wo es aufgehört hat.</p>
 
-  <div class="card">
-    <label for="guestName">Dein Name</label>
-    <input type="text" id="guestName" placeholder="z. B. Julia" autocomplete="name">
+<button id="musicToggle">▶ Musik</button>
+<div id="musicEmbed"></div>
+
+<header class="site-header"><a href="welcome.html">Unsere Hochzeit · 12.09.2026</a></header>
+
+<div class="wrap">
+  <section class="intro">
+    <h2>Unsere Momente</h2>
+    <p>Teile deine schönsten Erinnerungen mit uns.</p>
+    <div class="divider"><span class="line"></span><img src="olivenzweig-unten.png" alt=""><span class="line"></span></div>
+  </section>
+
+  <div class="memory-slideshow" id="memorySlideshow">
+    <div class="slide-viewport" id="slideViewport"></div>
+    <button class="slide-arrow prev" id="slidePrev" aria-label="Vorheriges Foto">‹</button>
+    <button class="slide-arrow next" id="slideNext" aria-label="Nächstes Foto">›</button>
+    <div class="slide-dots" id="slideDots"></div>
+  </div>
+
+  <section class="share-intro">
+    <h2>Teile deine Erinnerungen mit uns</h2>
+    <p>Hast du Fotos oder Videos von unserem Hochzeitstag?<br>Wir würden uns riesig freuen, sie zu sehen.</p>
+  </section>
+
+  <div class="upload-card">
+    <label for="guestName">Wie dürfen wir dich nennen?</label>
+    <input type="text" id="guestName" placeholder="Dein Name" autocomplete="name">
 
     <div id="dropZone">
-      Fotos/Videos hierher ziehen oder
-      <div><button type="button" onclick="document.getElementById('fileInput').click()">Dateien auswählen</button></div>
+      <div class="drop-text">Fotos &amp; Videos hierher ziehen</div>
+      <div class="drop-or">oder</div>
+      <button type="button" id="chooseFilesBtn">Dateien auswählen</button>
       <input type="file" id="fileInput" multiple accept="image/*,video/*">
     </div>
   </div>
 
+  <p class="upload-summary" id="uploadSummary" hidden></p>
+  <button id="submitBtn" hidden>Erinnerungen senden</button>
   <button id="retryAllBtn" hidden>Fehlgeschlagene erneut versuchen</button>
-
   <div id="fileList"></div>
+
+  <div class="success-msg" id="successMsg" hidden>
+    <h3>Vielen Dank! ❤️</h3>
+    <p>Schön, dass du deine Erinnerungen mit uns teilst.</p>
+  </div>
+
+  <section class="drone-section">
+    <h2>Ein Blick von oben</h2>
+    <p class="sub">Ein paar Eindrücke von unserem besonderen Tag.</p>
+    <div class="drone-video-wrap" id="droneVideoWrap">
+      <!-- Platzhalter: Pfad zum Drohnenvideo fehlt noch, siehe Chat -->
+      <video id="droneVideo" muted loop playsinline preload="none"></video>
+      <button class="video-play-btn" id="dronePlayBtn" hidden>▶</button>
+    </div>
+    <p class="drone-placeholder-note" id="droneNote">Video folgt in Kürze.</p>
+  </section>
+
+  <footer class="site-footer">Mit Liebe – Selina &amp; Nicolai</footer>
 </div>
+
 <script>
-  // Rotierende Foto-Slideshow im Hintergrund - vom Hero-Foto auf
-  // welcome.html hierher verlagert (Nutzerwunsch: "Slideshow soll fuer
-  // Seite 2 genutzt werden"), damit auch waehrend des Ausfuellens/
-  // Hochladens noch Stimmung da ist, ohne vom eigentlichen Formular
-  // abzulenken (siehe kraeftigerer Weiss-Schleier oben in der CSS).
+  /* ============ Erinnerungs-Slideshow: object-fit:contain, nie ==========
+     beschnitten. Weicher, vergroesserter Blur-Hintergrund derselben
+     Foto-URL fuellt die Raender bei abweichendem Seitenverhaeltnis - keine
+     harten schwarzen Balken. Container hat feste Hoehe (min(58vh,540px)),
+     springt beim Wechsel Hochkant/Quer nicht. ============================ */
   const SLIDESHOW_PHOTOS = [
     'slideshow-photos/PB_0003.JPG',
     'slideshow-photos/PB_0115.JPG',
@@ -212,22 +505,123 @@
     'slideshow-photos/1000062850.jpg',
     'slideshow-photos/1000062632.jpg',
   ];
-  const SLIDE_INTERVAL_MS = 4500;
-  const slideshowEl = document.getElementById('slideshow');
-  let slideIndex = 0;
-  const slideImgEls = SLIDESHOW_PHOTOS.map((src, i) => {
+  const SLIDE_INTERVAL_MS = 5000;
+
+  const slideViewport = document.getElementById('slideViewport');
+  const slideDotsEl = document.getElementById('slideDots');
+  let slideIdx = 0;
+  let slideTimer = null;
+
+  const slideEls = SLIDESHOW_PHOTOS.map((src, i) => {
+    const bg = document.createElement('div');
+    bg.className = 'slide-bg';
+    bg.style.backgroundImage = `url("${src}")`;
+    if (i === 0) bg.classList.add('active');
+    slideViewport.appendChild(bg);
+
     const img = document.createElement('img');
+    img.className = 'slide-img';
     img.src = src;
     img.alt = '';
     if (i === 0) img.classList.add('active');
-    slideshowEl.appendChild(img);
-    return img;
+    slideViewport.appendChild(img);
+
+    const dot = document.createElement('button');
+    dot.className = 'dot';
+    dot.setAttribute('aria-label', `Foto ${i + 1}`);
+    if (i === 0) dot.classList.add('active');
+    dot.addEventListener('click', () => goToSlide(i));
+    slideDotsEl.appendChild(dot);
+
+    return { bg, img, dot };
   });
-  setInterval(() => {
-    slideImgEls[slideIndex].classList.remove('active');
-    slideIndex = (slideIndex + 1) % slideImgEls.length;
-    slideImgEls[slideIndex].classList.add('active');
-  }, SLIDE_INTERVAL_MS);
+
+  function goToSlide(i) {
+    slideEls[slideIdx].bg.classList.remove('active');
+    slideEls[slideIdx].img.classList.remove('active');
+    slideEls[slideIdx].dot.classList.remove('active');
+    slideIdx = (i + slideEls.length) % slideEls.length;
+    slideEls[slideIdx].bg.classList.add('active');
+    slideEls[slideIdx].img.classList.add('active');
+    slideEls[slideIdx].dot.classList.add('active');
+  }
+  function nextSlide() { goToSlide(slideIdx + 1); }
+  function prevSlide() { goToSlide(slideIdx - 1); }
+  function restartTimer() {
+    if (slideTimer) clearInterval(slideTimer);
+    slideTimer = setInterval(nextSlide, SLIDE_INTERVAL_MS);
+  }
+  document.getElementById('slideNext').addEventListener('click', () => { nextSlide(); restartTimer(); });
+  document.getElementById('slidePrev').addEventListener('click', () => { prevSlide(); restartTimer(); });
+  restartTimer();
+
+  // Swipe auf Mobile
+  let touchStartX = null;
+  const slideshowEl = document.getElementById('memorySlideshow');
+  slideshowEl.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+  slideshowEl.addEventListener('touchend', e => {
+    if (touchStartX === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(dx) > 40) { dx < 0 ? nextSlide() : prevSlide(); restartTimer(); }
+    touchStartX = null;
+  }, { passive: true });
+
+  /* ============ Musik - dieselbe Spotify-IFrame-API/Playlist wie auf ====
+     welcome.html, keine zweite Audio-Logik. Eigene Controller-Instanz
+     noetig, weil jede Seite ein eigener kompletter Seitenaufruf ist (kein
+     SPA-Framework) - der Browser verwirft welcome.html's Player beim
+     Navigieren komplett, daher kann die Wiedergabe nicht nahtlos
+     "weiterlaufen", nur derselbe Song/Einstieg wird hier neu gestartet. ==*/
+  const SPOTIFY_PLAYLIST_ID = '0efAXCBOjiHjHb1EQ1ssuB';
+  const START_AT_SECONDS = 41;
+  let spotifyController = null;
+  let musicWanted = false;
+  let musicIsPlaying = false;
+
+  window.onSpotifyIframeApiReady = (IFrameAPI) => {
+    IFrameAPI.createController(
+      document.getElementById('musicEmbed'),
+      { uri: `spotify:playlist:${SPOTIFY_PLAYLIST_ID}`, width: '1', height: '1' },
+      (EmbedController) => {
+        spotifyController = EmbedController;
+        spotifyController.addListener('playback_update', (e) => {
+          musicIsPlaying = !e.data.isPaused;
+          updateMusicBtn();
+        });
+        if (musicWanted) {
+          spotifyController.seek(START_AT_SECONDS);
+          spotifyController.play();
+        }
+      }
+    );
+  };
+
+  function updateMusicBtn() {
+    document.getElementById('musicToggle').textContent = musicIsPlaying ? '⏸ Musik' : '▶ Musik';
+  }
+
+  document.getElementById('musicToggle').addEventListener('click', () => {
+    musicWanted = true;
+    if (!spotifyController) return; // API noch nicht bereit, "musicWanted" faengt das ab
+    if (musicIsPlaying) {
+      spotifyController.pause();
+    } else {
+      spotifyController.seek(START_AT_SECONDS);
+      spotifyController.play();
+    }
+  });
+
+  /* ============ Drohnenvideo: stumm/loop/autoplay per Default; eigener =
+     Ton nur nach Klick, pausiert dann automatisch die Hintergrundmusik,
+     damit nie zwei Tonquellen gleichzeitig laufen. ======================*/
+  const droneVideo = document.getElementById('droneVideo');
+  const dronePlayBtn = document.getElementById('dronePlayBtn');
+  dronePlayBtn.addEventListener('click', () => {
+    droneVideo.muted = false;
+    droneVideo.play();
+    dronePlayBtn.hidden = true;
+    if (spotifyController && musicIsPlaying) spotifyController.pause();
+  });
 </script>
 <script src="upload.js"></script>
 </body>

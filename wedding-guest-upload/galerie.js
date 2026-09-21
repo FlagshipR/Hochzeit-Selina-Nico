@@ -1,10 +1,13 @@
-// galerie.js — Gast-Galerie: laedt per URL-Parameter (?g=<slug>) genau die
-// Fotos, auf denen dieser Gast laut Gesichtserkennung zu sehen ist. Die
-// eigentlichen Bild-/Videodateien werden nie kopiert, sondern live ueber
-// image.php direkt vom NAS-Pfad gestreamt (siehe dort).
+// galerie.js — Gast-Galerie: laedt per URL-Parameter (?g=<code>) genau die
+// Fotos, auf denen dieser Gast laut Gesichtserkennung zu sehen ist. Ohne
+// gueltigen Code zeigt die Seite stattdessen ein Eingabefeld - ein
+// einziger Link kann so an alle Gaeste gehen, der persoenliche Code kommt
+// separat (siehe resolve-guest.php). Die eigentlichen Bild-/Videodateien
+// werden nie kopiert, sondern live ueber image.php direkt vom NAS-Pfad
+// gestreamt (siehe dort).
 
 const params = new URLSearchParams(location.search);
-const guest = params.get('g') || '';
+let guest = params.get('g') || '';
 
 const greetingEl = document.getElementById('greeting');
 const subGreetingEl = document.getElementById('subGreeting');
@@ -12,6 +15,10 @@ const thankYouEl = document.getElementById('thankYou');
 const stateMsgEl = document.getElementById('stateMsg');
 const photoCountEl = document.getElementById('photoCount');
 const gridEl = document.getElementById('grid');
+const codeEntryEl = document.getElementById('codeEntry');
+const codeFormEl = document.getElementById('codeForm');
+const codeInputEl = document.getElementById('codeInput');
+const codeErrorEl = document.getElementById('codeError');
 
 function showState(msg, isError) {
   stateMsgEl.textContent = msg;
@@ -19,12 +26,42 @@ function showState(msg, isError) {
   stateMsgEl.classList.toggle('error', !!isError);
 }
 
+// Zeigt die Code-Eingabe statt einer Sackgassen-Fehlermeldung - sowohl
+// beim allerersten Aufruf ohne ?g= (der eine Link, der an alle Gaeste
+// geht) als auch wenn ein eingegebener Code nicht erkannt wurde (dann
+// bleibt er im Feld stehen, damit man ihn direkt korrigieren kann statt
+// neu zu tippen).
+function showCodeEntry(errorMsg) {
+  greetingEl.textContent = 'Deine Fotos';
+  subGreetingEl.textContent = 'Gib deinen persönlichen Code ein, um deine Fotos zu sehen.';
+  thankYouEl.hidden = true;
+  stateMsgEl.hidden = true;
+  photoCountEl.hidden = true;
+  gridEl.hidden = true;
+  codeEntryEl.hidden = false;
+  codeErrorEl.hidden = !errorMsg;
+  if (errorMsg) codeErrorEl.textContent = errorMsg;
+  codeInputEl.focus();
+}
+
+codeFormEl.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const code = codeInputEl.value.trim().toLowerCase().replace(/\s+/g, '');
+  if (!code) return;
+  location.href = `galerie.html?g=${encodeURIComponent(code)}`;
+});
+
 let photos = [];
 
 async function load() {
+  if (!guest) {
+    showCodeEntry();
+    return;
+  }
+
   if (!/^[a-z0-9-]{1,60}$/.test(guest)) {
-    subGreetingEl.textContent = 'Dieser Link scheint nicht vollständig zu sein.';
-    showState('Kein gültiger Gast-Link gefunden. Bitte den Link nochmal prüfen, den du bekommen hast.', true);
+    codeInputEl.value = guest;
+    showCodeEntry('Dieser Code scheint nicht zu stimmen. Bitte nochmal prüfen.');
     return;
   }
 
@@ -39,11 +76,17 @@ async function load() {
     return;
   }
 
+  if (res.status === 404) {
+    codeInputEl.value = guest;
+    showCodeEntry(data.error || 'Diesen Code kennen wir leider nicht. Bitte nochmal prüfen.');
+    return;
+  }
   if (!res.ok || data.error) {
-    showState(data.error || 'Kein Gast mit diesem Link gefunden.', true);
+    showState(data.error || 'Kein Gast mit diesem Code gefunden.', true);
     return;
   }
 
+  codeEntryEl.hidden = true;
   photos = data.photos || [];
   greetingEl.textContent = `Für ${data.name}`;
 

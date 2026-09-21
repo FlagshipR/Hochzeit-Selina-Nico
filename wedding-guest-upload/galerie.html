@@ -62,6 +62,38 @@
     margin: 0;
     font-size: 1.02rem;
   }
+  .code-entry { text-align: center; padding: 18px 20px 6px; }
+  .code-entry p { color: var(--muted); margin: 0 0 16px; font-size: 0.95rem; }
+  #codeForm { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  #codeInput {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    letter-spacing: 2px;
+    text-align: center;
+    text-transform: uppercase;
+    padding: 12px 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--card);
+    color: var(--text);
+    width: 160px;
+    max-width: 60vw;
+  }
+  #codeInput:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  #codeForm button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 12px 26px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  #codeForm button:hover { background: var(--accent-dark); }
+  .code-error { color: var(--error); font-size: 0.85rem; margin: 14px 0 0; }
+  .code-error[hidden] { display: none; }
+
   .thank-you {
     max-width: 480px;
     margin: 18px auto 0;
@@ -239,6 +271,15 @@
     <p id="subGreeting">Einen Moment …</p>
     <div id="thankYou" class="thank-you" hidden></div>
     <div class="divider"><span class="line"></span><img src="olivenzweig-unten.png" alt=""><span class="line"></span></div>
+  </section>
+
+  <section id="codeEntry" class="code-entry" hidden>
+    <p>Gib deinen persönlichen Code ein:</p>
+    <form id="codeForm">
+      <input type="text" id="codeInput" placeholder="Code" autocomplete="off" autocapitalize="characters" maxlength="12">
+      <button type="submit">Ansehen</button>
+    </form>
+    <p id="codeError" class="code-error" hidden></p>
   </section>
 
   <p id="stateMsg" hidden></p>

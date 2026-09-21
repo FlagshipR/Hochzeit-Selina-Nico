@@ -17,9 +17,9 @@ function fail(int $code, string $msg): void {
     exit;
 }
 
-$guest = (string)($_GET['g'] ?? '');
+$guest = strtolower((string)($_GET['g'] ?? ''));
 if (!preg_match('/^[a-z0-9-]{1,60}$/', $guest)) {
-    fail(400, 'Ungueltiger Link');
+    fail(400, 'Ungueltiger Code');
 }
 
 $i = filter_input(INPUT_GET, 'i', FILTER_VALIDATE_INT);
@@ -27,15 +27,21 @@ if ($i === null || $i === false || $i < 0) {
     fail(400, 'Ungueltiger Index');
 }
 
+require __DIR__ . '/resolve-guest.php';
+$slug = resolve_guest_code($guest);
+if ($slug === null) {
+    fail(404, 'Nicht gefunden');
+}
+
 if (!is_file(DATA_FILE)) {
     fail(500, 'Personendaten nicht gefunden');
 }
 $data = json_decode((string)file_get_contents(DATA_FILE), true);
-if (!is_array($data) || !isset($data[$guest]['photos'][$i])) {
+if (!is_array($data) || !isset($data[$slug]['photos'][$i])) {
     fail(404, 'Nicht gefunden');
 }
 
-$photo = $data[$guest]['photos'][$i];
+$photo = $data[$slug]['photos'][$i];
 $path = $photo['path'];
 
 if (!is_file($path)) {

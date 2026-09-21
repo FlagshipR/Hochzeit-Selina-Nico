@@ -16,7 +16,7 @@ Diese Lösung hier begegnet beidem:
 - `index.html` / `upload.js` – Frontend: Namensfeld, Drag&Drop oder Dateiauswahl, Fortschritt pro Datei, automatischer Retry mit Backoff.
 - `upload.php` – Backend: nimmt Chunks entgegen, setzt sie zusammen, keine Bildbearbeitung.
 - `welcome.html` – Landing-Page vor dem Upload-Formular (Diashow, Musik, Drohnenvideo).
-- `galerie.html` / `galerie.js` / `photos.php` / `image.php` – "Tauschhandel": personalisierte Foto-Galerie pro Gast, siehe eigener Abschnitt unten.
+- `galerie.html` / `galerie.js` / `photos.php` / `image.php` / `resolve-guest.php` – "Tauschhandel": personalisierte Foto-Galerie pro Gast, Zugriff über einen Code statt individuellem Link, siehe eigener Abschnitt unten.
 
 ## NAS-Setup
 
@@ -56,24 +56,29 @@ Wie beim alten Dateianforderungs-Link: die Portfreigabe an der FritzBox nur so l
 
 ### 5. Personen-Galerie ("Tauschhandel")
 
-Jeder Gast bekommt einen personalisierten Link (`galerie.html?g=<slug>`, z. B. `?g=julia`) und sieht dort nur Fotos, auf denen er/sie laut Zuordnung zu sehen ist. Fotos werden **nie kopiert** – `image.php` streamt sie live direkt vom NAS-Originalpfad.
+Alle Gäste bekommen **denselben einen Link** (`galerie.html`, ohne Parameter) – die Seite fragt dort nach einem persönlichen Code und zeigt danach nur Fotos, auf denen die jeweilige Person laut Zuordnung zu sehen ist. Fotos werden **nie kopiert** – `image.php` streamt sie live direkt vom NAS-Originalpfad.
 
-**Wie die Zuordnung funktioniert – zwei Schichten:**
-1. **`gallery-data/lists/<slug>.txt`** – eine Klartext-Liste pro Person, ein NAS-Pfad pro Zeile. **Das ist die von Hand gepflegte Quelle der Wahrheit** – Zeile löschen = Foto raus, Zeile ergänzen = Foto rein. Erste Zeile optional `# Name: <Anzeigename>` für einen Namen, der vom Dateinamen abweicht (z. B. Umlaute); Zeilen mit `#` werden sonst ignoriert.
-2. **`gallery-data/person-photos.json`** – wird aus den `.txt`-Listen generiert (`regenerate-gallery-data.ps1`, siehe unten) und ist die Datei, die `photos.php`/`image.php` tatsächlich lesen. **Nicht von Hand bearbeiten** – nach jeder Listen-Änderung das Skript neu laufen lassen.
+Bewusst **kein** Link mit Namen/Slug direkt drin (`?g=julia` o. ä.) – das wäre erratbar und würde die Zugriffskontrolle aushebeln. Der Code ist zufällig (6 Zeichen, ohne leicht verwechselbare 0/1/i/l/o) und nicht vom Namen ableitbar.
+
+**Wie die Zuordnung funktioniert – drei Schichten:**
+1. **`gallery-data/lists/<Name>.txt`** – eine Klartext-Liste pro Person, ein NAS-Pfad pro Zeile. **Das ist die von Hand gepflegte Quelle der Wahrheit** – Zeile löschen = Foto raus, Zeile ergänzen = Foto rein. Optionale Kopfzeilen: `# Name: <Anzeigename>` für einen Namen, der vom Dateinamen abweicht (z. B. Umlaute), und `# Code: <code>` – wird beim ersten Lauf von `regenerate-gallery-data.ps1` automatisch erzeugt und danach **stabil beibehalten** (ein einmal verteilter Code ändert sich nie mehr von selbst). Beides kann auch von Hand überschrieben werden, z. B. für einen persönlichen statt zufälligen Code.
+2. **`gallery-data/person-photos.json`** – wird aus den `.txt`-Listen generiert und ist die Datei, die `photos.php`/`image.php` tatsächlich für die Fotodaten lesen (Schlüssel weiterhin der Namens-Slug, intern).
+3. **`gallery-data/codes.json`** – ebenfalls generiert, bildet Code → Slug ab. `resolve-guest.php` löst darüber den eingegebenen Code auf, bevor `photos.php`/`image.php` überhaupt in `person-photos.json` nachschlagen; ein unbekannter Code liefert immer "nicht gefunden", es gibt **keinen** Fallback auf den rohen Eingabewert als Slug.
+
+Beide JSON-Dateien **nicht von Hand bearbeiten** – nach jeder Listen-Änderung `regenerate-gallery-data.ps1` neu laufen lassen. Die Skript-Ausgabe am Ende (Name/Code-Tabelle) ist die Liste, die tatsächlich an die Gäste verteilt wird.
 
 Die ursprüngliche automatische Zuordnung kam aus Synology Photos' Gesichtserkennung (siehe `reference_synology_photos_api` in Claudes Memory-System) – die Listen waren der Ausgangspunkt, sind aber jetzt manuell kuratierbar/korrigierbar, unabhängig von der Automatik.
 
 **NAS-Freigabe (zusätzlich zu Abschnitt 1 oben):** der Web-Station-Dienst-Account braucht **Lesezugriff** auf alle Ordner, aus denen Fotos stammen (mind. `.../20260912_Hochzeit_Traumfrau/Hochzeitsfotos/`, `.../Hochzeitbilder Fotobox/`, `.../wedding-guest-upload/`) – bisher hatte er dort nur Schreibzugriff auf den Upload-Zielordner. Gleiches Vorgehen wie in Abschnitt 1: File Station → Eigenschaften → Berechtigung → Lesen für den PHP-Benutzer.
 
-**`gallery-data/person-photos.json` NICHT in den Web-Dokument-Root legen** – die Datei enthält volle NAS-Pfade aller zugeordneten Personen, das wäre ein Informationsleck an jeden mit dem Basis-Link. Sie muss außerhalb des von Web Station servierten Bereichs liegen; `photos.php`/`image.php` lesen sie über einen absoluten Dateisystempfad (siehe `DATA_FILE`-Konstante in beiden Dateien).
+**`gallery-data/person-photos.json` und `codes.json` NICHT in den Web-Dokument-Root legen** – sie enthalten volle NAS-Pfade bzw. die Code→Person-Zuordnung aller Gäste, das wäre ein Informationsleck an jeden mit dem Basis-Link. Beide müssen außerhalb des von Web Station servierten Bereichs liegen; `photos.php`/`image.php`/`resolve-guest.php` lesen sie über einen absoluten Dateisystempfad (siehe `DATA_FILE`-/`CODES_FILE`-Konstanten).
 
 ## Deployment
 
 Wie bei `nas-slideshow`: **kein CI**, geänderte Dateien müssen manuell auf die NAS kopiert werden (z. B. über `\\FLANAS\...`):
 - `index.html`/`upload.js`/`upload.php`/`welcome.html` → Dokument-Root des Web-Station-Hosts.
-- `galerie.html`/`galerie.js`/`photos.php`/`image.php` → ebenfalls Dokument-Root.
-- `gallery-data/person-photos.json` (nach `regenerate-gallery-data.ps1`) → **außerhalb** des Dokument-Roots, an den Pfad aus der `DATA_FILE`-Konstante (siehe Abschnitt 5).
+- `galerie.html`/`galerie.js`/`photos.php`/`image.php`/`resolve-guest.php` → ebenfalls Dokument-Root.
+- `gallery-data/person-photos.json` UND `gallery-data/codes.json` (beide nach `regenerate-gallery-data.ps1`) → **außerhalb** des Dokument-Roots, an die Pfade aus den `DATA_FILE`-/`CODES_FILE`-Konstanten (siehe Abschnitt 5).
 
 ## Lokale Vorschau (nur Frontend, kein Upload-Test möglich)
 

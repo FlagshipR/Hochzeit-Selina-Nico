@@ -18,11 +18,18 @@ function fail(int $code, string $msg): void {
     exit;
 }
 
-$guest = (string)($_GET['g'] ?? '');
-// Nur a-z/0-9/Bindestrich - passend zur Slug-Erzeugung im Datengenerator,
-// verhindert jede Form von Injection ueber den Parameter von vornherein.
+$guest = strtolower((string)($_GET['g'] ?? ''));
+// Nur a-z/0-9/Bindestrich - passend zur Code-/Slug-Erzeugung im
+// Datengenerator, verhindert jede Form von Injection ueber den Parameter
+// von vornherein.
 if (!preg_match('/^[a-z0-9-]{1,60}$/', $guest)) {
-    fail(400, 'Ungueltiger Link');
+    fail(400, 'Ungueltiger Code');
+}
+
+require __DIR__ . '/resolve-guest.php';
+$slug = resolve_guest_code($guest);
+if ($slug === null) {
+    fail(404, 'Diesen Code kennen wir leider nicht');
 }
 
 if (!is_file(DATA_FILE)) {
@@ -36,11 +43,11 @@ if (!is_array($data)) {
     // aus wie ein einfacher Tippfehler im Link.
     fail(500, 'Personendaten konnten nicht gelesen werden (' . json_last_error_msg() . ')');
 }
-if (!isset($data[$guest])) {
-    fail(404, 'Kein Gast mit diesem Link gefunden');
+if (!isset($data[$slug])) {
+    fail(404, 'Diesen Code kennen wir leider nicht');
 }
 
-$entry = $data[$guest];
+$entry = $data[$slug];
 $photos = [];
 foreach ($entry['photos'] as $i => $p) {
     $photos[] = ['i' => $i, 'filename' => $p['filename'], 'type' => $p['type']];

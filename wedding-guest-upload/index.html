@@ -71,7 +71,22 @@
     min-height: 40px;
   }
   #musicToggle:hover { background: rgba(116, 131, 106, 1); transform: scale(1.04); }
-  #musicEmbed { position: fixed; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
+  /* Aeusserer Wrapper fuer Sichtbarkeit/Groesse - NICHT direkt #musicEmbed,
+     denn die Spotify IFrame API ersetzt dieses Element beim Mounten
+     vollstaendig durch das iframe, jegliches CSS direkt darauf (display,
+     width, position) wuerde dabei verloren gehen. */
+  #musicArea {
+    display: none;
+    position: fixed;
+    top: 14px;
+    right: 14px;
+    z-index: 50;
+    width: min(80vw, 280px);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+  }
+  #musicArea iframe { display: block; width: 100%; }
 
   /* ---------- Intro ---------- */
   .intro {
@@ -388,29 +403,6 @@
     height: 100%;
     object-fit: cover;
   }
-  .video-play-btn {
-    position: absolute;
-    inset: 0;
-    margin: auto;
-    width: 72px;
-    height: 72px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.9);
-    border: none;
-    font-size: 1.6rem;
-    color: var(--text);
-    cursor: pointer;
-    box-shadow: 0 6px 24px rgba(0,0,0,0.25);
-    transition: transform 0.2s, opacity 0.3s;
-  }
-  .video-play-btn:hover { transform: scale(1.06); }
-  .video-play-btn[hidden] { display: none; }
-  .drone-placeholder-note {
-    margin-top: 12px;
-    font-size: 0.8rem;
-    color: var(--muted);
-  }
-
   footer.site-footer {
     text-align: center;
     padding: 50px 20px 30px;
@@ -429,7 +421,7 @@
 <body>
 
 <button id="musicToggle">▶ Musik</button>
-<div id="musicEmbed"></div>
+<div id="musicArea"><div id="musicEmbed"></div></div>
 
 <header class="site-header"><a href="welcome.html">Unsere Hochzeit · 12.09.2026</a></header>
 
@@ -478,11 +470,8 @@
     <h2>Ein Blick von oben</h2>
     <p class="sub">Ein paar Eindrücke von unserem besonderen Tag.</p>
     <div class="drone-video-wrap" id="droneVideoWrap">
-      <!-- Platzhalter: Pfad zum Drohnenvideo fehlt noch, siehe Chat -->
-      <video id="droneVideo" muted loop playsinline preload="none"></video>
-      <button class="video-play-btn" id="dronePlayBtn" hidden>▶</button>
+      <video id="droneVideo" autoplay muted loop playsinline preload="auto" src="drone-video/drone-intro-10s.mp4"></video>
     </div>
-    <p class="drone-placeholder-note" id="droneNote">Video folgt in Kürze.</p>
   </section>
 
   <footer class="site-footer">Mit Liebe – Selina &amp; Nicolai</footer>
@@ -581,12 +570,11 @@
   window.onSpotifyIframeApiReady = (IFrameAPI) => {
     IFrameAPI.createController(
       document.getElementById('musicEmbed'),
-      { uri: `spotify:playlist:${SPOTIFY_PLAYLIST_ID}`, width: '1', height: '1' },
+      { uri: `spotify:playlist:${SPOTIFY_PLAYLIST_ID}`, width: '100%', height: '80' },
       (EmbedController) => {
         spotifyController = EmbedController;
         spotifyController.addListener('playback_update', (e) => {
           musicIsPlaying = !e.data.isPaused;
-          updateMusicBtn();
         });
         if (musicWanted) {
           spotifyController.seek(START_AT_SECONDS);
@@ -596,32 +584,18 @@
     );
   };
 
-  function updateMusicBtn() {
-    document.getElementById('musicToggle').textContent = musicIsPlaying ? '⏸ Musik' : '▶ Musik';
-  }
-
+  // Wie auf welcome.html: Button wird einmalig geklickt, danach uebernimmt
+  // das sichtbare Spotify-Widget selbst Play/Pause - kein eigener Toggle-
+  // Zustand auf dem Button noetig.
   document.getElementById('musicToggle').addEventListener('click', () => {
     musicWanted = true;
+    document.getElementById('musicArea').style.display = 'block';
+    document.getElementById('musicToggle').style.display = 'none';
     if (!spotifyController) return; // API noch nicht bereit, "musicWanted" faengt das ab
-    if (musicIsPlaying) {
-      spotifyController.pause();
-    } else {
-      spotifyController.seek(START_AT_SECONDS);
-      spotifyController.play();
-    }
+    spotifyController.seek(START_AT_SECONDS);
+    spotifyController.play();
   });
 
-  /* ============ Drohnenvideo: stumm/loop/autoplay per Default; eigener =
-     Ton nur nach Klick, pausiert dann automatisch die Hintergrundmusik,
-     damit nie zwei Tonquellen gleichzeitig laufen. ======================*/
-  const droneVideo = document.getElementById('droneVideo');
-  const dronePlayBtn = document.getElementById('dronePlayBtn');
-  dronePlayBtn.addEventListener('click', () => {
-    droneVideo.muted = false;
-    droneVideo.play();
-    dronePlayBtn.hidden = true;
-    if (spotifyController && musicIsPlaying) spotifyController.pause();
-  });
 </script>
 <script src="upload.js"></script>
 </body>

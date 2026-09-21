@@ -7,7 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,400&display=swap" rel="stylesheet">
-<script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
 <style>
   :root {
     color-scheme: light;
@@ -147,36 +146,8 @@
     transform: rotate(180deg);
   }
 
-  #startBtn {
-    background: rgba(116, 131, 106, 0.8);
-    color: #fff;
-    border: none;
-    padding: 14px 30px;
-    border-radius: 999px;
-    font-size: 1.02rem;
-    font-weight: 500;
-    letter-spacing: 0.3px;
-    cursor: pointer;
-    margin-top: 14px;
-    box-shadow: 0 4px 18px rgba(0,0,0,0.25);
-    transition: background 0.15s, transform 0.15s;
-  }
-  #startBtn:hover { background: rgba(116, 131, 106, 0.95); transform: scale(1.03); }
-  #startBtn:active { transform: scale(0.98); }
-
-  #musicArea {
-    display: none;
-    width: min(90vw, 420px);
-    margin-bottom: 20px;
-  }
-  #musicArea iframe {
-    border-radius: 12px;
-    display: block;
-    width: 100%;
-  }
-
   #continueBtn {
-    display: none;
+    display: inline-block;
     margin-top: 8px;
     background: #fff;
     color: var(--accent-dark);
@@ -206,64 +177,11 @@
       <div class="amp-row"><span class="rule"></span><span class="amp">&amp;</span><span class="rule"></span></div>
       <h1 class="wedding-name">Nicolai</h1>
       <p class="sub">Schön, dass du dabei warst. ♥</p>
-
-      <button id="startBtn">▶ Musik &amp; Fotos starten</button>
     </div>
 
     <div class="bottom-group">
-      <div id="musicArea">
-        <div id="embed-iframe" style="border-radius:12px; overflow:hidden;"></div>
-      </div>
-
       <a id="continueBtn" href="./">Jetzt eigene Fotos hochladen →</a>
     </div>
   </div>
-
-<script>
-  // Nur noch EIN festes Hero-Foto auf dieser Seite (Nutzerwunsch: "genau
-  // das Bild", IMG_5563 - die Stirnkuss-Aufnahme vor der Holztuer), keine
-  // Rotation mehr hier. Die rotierende Slideshow mit allen Gaeste-/
-  // Fotobox-Bildern lebt jetzt stattdessen auf Seite 2 (index.html).
-  const SPOTIFY_PLAYLIST_ID = '0efAXCBOjiHjHb1EQ1ssuB';
-  const START_AT_SECONDS = 41;
-
-  // Spotifys einfaches iframe-Embed kennt keinen Start-Zeitpunkt ueber die
-  // URL - dafuer gibt's die offizielle Spotify IFrame API (oben im <head>
-  // eingebunden), die einen steuerbaren Controller liefert (play/seek).
-  // Der Controller wird gleich beim Laden erstellt (still, noch nicht
-  // abspielend), damit er beim Klick sofort bereit ist - "wantsToPlay"
-  // faengt den Fall ab, dass der Nutzer schneller klickt, als die API
-  // (asynchron von Spotify nachgeladen) fertig initialisiert ist.
-  let spotifyController = null;
-  let wantsToPlay = false;
-
-  window.onSpotifyIframeApiReady = (IFrameAPI) => {
-    IFrameAPI.createController(
-      document.getElementById('embed-iframe'),
-      { uri: `spotify:playlist:${SPOTIFY_PLAYLIST_ID}`, width: '100%', height: '152' },
-      (EmbedController) => {
-        spotifyController = EmbedController;
-        if (wantsToPlay) {
-          spotifyController.seek(START_AT_SECONDS);
-          spotifyController.play();
-        }
-      }
-    );
-  };
-
-  // Musik startet erst nach echtem Klick (Nutzer-Geste) - Browser blockieren
-  // Autoplay mit Ton sonst grundsaetzlich, das laesst sich nicht per Code
-  // umgehen, auch nicht mit der IFrame API.
-  document.getElementById('startBtn').addEventListener('click', () => {
-    document.getElementById('musicArea').style.display = 'block';
-    document.getElementById('continueBtn').style.display = 'inline-block';
-    document.getElementById('startBtn').style.display = 'none';
-    wantsToPlay = true;
-    if (spotifyController) {
-      spotifyController.seek(START_AT_SECONDS);
-      spotifyController.play();
-    }
-  });
-</script>
 </body>
 </html>

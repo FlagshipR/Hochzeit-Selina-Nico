@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deine Fotos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #faf7f2;
+    --card: #fffdfa;
+    --text: #2b2622;
+    --muted: #8a8074;
+    --accent: #a9765a;
+    --accent-dark: #8a5f47;
+    --sage: #74836a;
+    --sage-light: #97a68c;
+    --border: #e7ddd1;
+    --success: #4b7a51;
+    --error: #b3453b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .serif { font-family: 'Playfair Display', serif; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 20px 60px; }
+
+  header.site-header {
+    text-align: center;
+    padding: 22px 60px 6px;
+    font-family: 'Playfair Display', serif;
+    font-size: 0.7rem;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  header.site-header a {
+    color: var(--muted);
+    text-decoration: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .intro { text-align: center; padding: 30px 20px 6px; }
+  .intro h2 {
+    font-family: 'Playfair Display', serif;
+    font-weight: 600;
+    font-size: 2.1rem;
+    color: var(--text);
+    margin: 0 0 10px;
+  }
+  .intro p {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    color: var(--muted);
+    margin: 0;
+    font-size: 1.02rem;
+  }
+  .divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin: 22px 0;
+    opacity: 0.85;
+  }
+  .divider .line { width: 44px; height: 1px; background: var(--border); }
+  .divider img { width: 34px; height: auto; opacity: 0.9; }
+
+  #stateMsg {
+    text-align: center;
+    padding: 60px 20px;
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    color: var(--muted);
+  }
+  #stateMsg.error { color: var(--error); }
+  #stateMsg[hidden] { display: none; }
+
+  #photoCount {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin: 0 0 20px;
+  }
+
+  #grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 10px;
+  }
+  #grid[hidden] { display: none; }
+  .thumb {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--border);
+    cursor: pointer;
+    border: none;
+    padding: 0;
+  }
+  .thumb img, .thumb video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .thumb .video-badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    border-radius: 999px;
+  }
+  .thumb .play-icon {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 1.6rem;
+    text-shadow: 0 1px 8px rgba(0,0,0,0.5);
+    pointer-events: none;
+  }
+
+  /* ---------- Lightbox ---------- */
+  #lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(20,17,14,0.94);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  #lightbox[hidden] { display: none; }
+  #lightboxMedia {
+    max-width: 100%;
+    max-height: calc(100vh - 130px);
+    border-radius: 8px;
+    object-fit: contain;
+  }
+  .lb-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-top: 18px;
+  }
+  .lb-btn {
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 999px;
+    padding: 10px 22px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    min-height: 40px;
+  }
+  .lb-btn:hover { background: rgba(255,255,255,0.22); }
+  #lbClose {
+    position: fixed;
+    top: max(16px, env(safe-area-inset-top));
+    right: 16px;
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1.8rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 8px;
+  }
+  #lbPrev, #lbNext {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255,255,255,0.12);
+    border: none;
+    color: #fff;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    font-size: 1.4rem;
+    cursor: pointer;
+  }
+  #lbPrev { left: 12px; }
+  #lbNext { right: 12px; }
+
+  footer.site-footer {
+    text-align: center;
+    padding: 50px 20px 30px;
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  @media (max-width: 480px) {
+    .intro h2 { font-size: 1.75rem; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header"><a href="welcome.html">Unsere Hochzeit · 12.09.2026</a></header>
+
+<div class="wrap">
+  <section class="intro">
+    <h2 id="greeting" class="serif">Deine Fotos</h2>
+    <p id="subGreeting">Einen Moment …</p>
+    <div class="divider"><span class="line"></span><img src="olivenzweig-unten.png" alt=""><span class="line"></span></div>
+  </section>
+
+  <p id="stateMsg" hidden></p>
+  <p id="photoCount" hidden></p>
+  <div id="grid" hidden></div>
+
+  <footer class="site-footer">Mit Liebe – Selina &amp; Nicolai</footer>
+</div>
+
+<div id="lightbox" hidden>
+  <button id="lbClose" aria-label="Schließen">&times;</button>
+  <button id="lbPrev" aria-label="Vorheriges">‹</button>
+  <img id="lightboxMedia" alt="">
+  <div class="lb-bar">
+    <a id="lbDownload" class="lb-btn" download>Herunterladen</a>
+  </div>
+  <button id="lbNext" aria-label="Nächstes">›</button>
+</div>
+
+<script src="galerie.js"></script>
+</body>
+</html>

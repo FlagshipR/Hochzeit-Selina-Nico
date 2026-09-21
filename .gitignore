@@ -1,3 +1,12 @@
 # Lokaler Foto-Cache von run-local.ps1 - enthaelt echte Gaeste-Fotos,
 # darf niemals in dieses oeffentliche Repo (GitHub Pages) committet werden.
 nas-slideshow/LocalCache/
+
+# Personen-Galerie-Daten: Gaestenamen, volle NAS-Pfade und wer auf welchem
+# Foto zu sehen ist - aus demselben Grund wie oben niemals in dieses
+# oeffentliche Repo. Bleiben lokal, vom Nutzer per Hand in
+# wedding-guest-upload/gallery-data/lists/*.txt gepflegt und via
+# regenerate-gallery-data.ps1 in person-photos.json uebersetzt; Deployment
+# auf die NAS erfolgt manuell/ausserhalb von git (siehe README).
+wedding-guest-upload/gallery-data/lists/
+wedding-guest-upload/gallery-data/person-photos.json

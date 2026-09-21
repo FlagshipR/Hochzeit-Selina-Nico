@@ -15,6 +15,8 @@ Diese Lösung hier begegnet beidem:
 
 - `index.html` / `upload.js` – Frontend: Namensfeld, Drag&Drop oder Dateiauswahl, Fortschritt pro Datei, automatischer Retry mit Backoff.
 - `upload.php` – Backend: nimmt Chunks entgegen, setzt sie zusammen, keine Bildbearbeitung.
+- `welcome.html` – Landing-Page vor dem Upload-Formular (Diashow, Musik, Drohnenvideo).
+- `galerie.html` / `galerie.js` / `photos.php` / `image.php` – "Tauschhandel": personalisierte Foto-Galerie pro Gast, siehe eigener Abschnitt unten.
 
 ## NAS-Setup
 
@@ -52,9 +54,26 @@ Damit Gäste von zu Hause aus nicht über den gedrosselten Relay laufen:
 
 Wie beim alten Dateianforderungs-Link: die Portfreigabe an der FritzBox nur so lange aktiv lassen, wie tatsächlich noch Gäste hochladen sollen, danach deaktivieren – reduziert die Zeit, in der überhaupt etwas vom Internet aus erreichbar ist.
 
+### 5. Personen-Galerie ("Tauschhandel")
+
+Jeder Gast bekommt einen personalisierten Link (`galerie.html?g=<slug>`, z. B. `?g=julia`) und sieht dort nur Fotos, auf denen er/sie laut Zuordnung zu sehen ist. Fotos werden **nie kopiert** – `image.php` streamt sie live direkt vom NAS-Originalpfad.
+
+**Wie die Zuordnung funktioniert – zwei Schichten:**
+1. **`gallery-data/lists/<slug>.txt`** – eine Klartext-Liste pro Person, ein NAS-Pfad pro Zeile. **Das ist die von Hand gepflegte Quelle der Wahrheit** – Zeile löschen = Foto raus, Zeile ergänzen = Foto rein. Erste Zeile optional `# Name: <Anzeigename>` für einen Namen, der vom Dateinamen abweicht (z. B. Umlaute); Zeilen mit `#` werden sonst ignoriert.
+2. **`gallery-data/person-photos.json`** – wird aus den `.txt`-Listen generiert (`regenerate-gallery-data.ps1`, siehe unten) und ist die Datei, die `photos.php`/`image.php` tatsächlich lesen. **Nicht von Hand bearbeiten** – nach jeder Listen-Änderung das Skript neu laufen lassen.
+
+Die ursprüngliche automatische Zuordnung kam aus Synology Photos' Gesichtserkennung (siehe `reference_synology_photos_api` in Claudes Memory-System) – die Listen waren der Ausgangspunkt, sind aber jetzt manuell kuratierbar/korrigierbar, unabhängig von der Automatik.
+
+**NAS-Freigabe (zusätzlich zu Abschnitt 1 oben):** der Web-Station-Dienst-Account braucht **Lesezugriff** auf alle Ordner, aus denen Fotos stammen (mind. `.../20260912_Hochzeit_Traumfrau/Hochzeitsfotos/`, `.../Hochzeitbilder Fotobox/`, `.../wedding-guest-upload/`) – bisher hatte er dort nur Schreibzugriff auf den Upload-Zielordner. Gleiches Vorgehen wie in Abschnitt 1: File Station → Eigenschaften → Berechtigung → Lesen für den PHP-Benutzer.
+
+**`gallery-data/person-photos.json` NICHT in den Web-Dokument-Root legen** – die Datei enthält volle NAS-Pfade aller zugeordneten Personen, das wäre ein Informationsleck an jeden mit dem Basis-Link. Sie muss außerhalb des von Web Station servierten Bereichs liegen; `photos.php`/`image.php` lesen sie über einen absoluten Dateisystempfad (siehe `DATA_FILE`-Konstante in beiden Dateien).
+
 ## Deployment
 
-Wie bei `nas-slideshow`: **kein CI**, `index.html`/`upload.js`/`upload.php` müssen nach jeder Änderung manuell auf die NAS in den Dokument-Root dieses Web-Station-Hosts kopiert werden (z. B. über `\\FLANAS\...`).
+Wie bei `nas-slideshow`: **kein CI**, geänderte Dateien müssen manuell auf die NAS kopiert werden (z. B. über `\\FLANAS\...`):
+- `index.html`/`upload.js`/`upload.php`/`welcome.html` → Dokument-Root des Web-Station-Hosts.
+- `galerie.html`/`galerie.js`/`photos.php`/`image.php` → ebenfalls Dokument-Root.
+- `gallery-data/person-photos.json` (nach `regenerate-gallery-data.ps1`) → **außerhalb** des Dokument-Roots, an den Pfad aus der `DATA_FILE`-Konstante (siehe Abschnitt 5).
 
 ## Lokale Vorschau (nur Frontend, kein Upload-Test möglich)
 

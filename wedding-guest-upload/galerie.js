@@ -60,6 +60,50 @@ async function load() {
   renderGrid();
 }
 
+// Echtes, gedrosseltes Lazy-Loading statt des nativen loading="lazy": bei
+// grossen Listen (z.B. 299 Fotos) laedt der Browser mit dem nativen
+// Attribut immer noch weit mehr gleichzeitig an, als die schwache NAS an
+// PHP-FPM-Workern gleichzeitig bedienen kann - fuehrte im Test zu
+// reihenweise 500ern/Verbindungsabbruechen. Deshalb hier: IntersectionObserver
+// setzt src erst kurz vor Sichtbarkeit, und eine kleine Warteschlange
+// begrenzt zusaetzlich, wie viele Downloads wirklich gleichzeitig laufen.
+const MAX_CONCURRENT_LOADS = 4;
+let activeLoads = 0;
+const loadQueue = [];
+
+function queueLoad(startFn) {
+  loadQueue.push(startFn);
+  pumpQueue();
+}
+function pumpQueue() {
+  while (activeLoads < MAX_CONCURRENT_LOADS && loadQueue.length > 0) {
+    activeLoads++;
+    const start = loadQueue.shift();
+    start(() => { activeLoads--; pumpQueue(); });
+  }
+}
+
+const lazyObserver = new IntersectionObserver((entries) => {
+  for (const entry of entries) {
+    if (!entry.isIntersecting) continue;
+    const el = entry.target;
+    lazyObserver.unobserve(el);
+    queueLoad((done) => {
+      const src = el.dataset.src;
+      if (el.tagName === 'IMG') {
+        el.addEventListener('load', done, { once: true });
+        el.addEventListener('error', done, { once: true });
+      } else {
+        // Video: 'loadedmetadata' reicht als Ladeende (preload="metadata"),
+        // wir laden hier keine volle Videodatei fuers Thumbnail.
+        el.addEventListener('loadedmetadata', done, { once: true });
+        el.addEventListener('error', done, { once: true });
+      }
+      el.src = src;
+    });
+  }
+}, { rootMargin: '200px' });
+
 function renderGrid() {
   gridEl.innerHTML = '';
   photos.forEach((p) => {
@@ -68,13 +112,16 @@ function renderGrid() {
     btn.setAttribute('aria-label', p.filename);
     btn.addEventListener('click', () => openLightbox(p.i));
 
+    const src = `image.php?g=${encodeURIComponent(guest)}&i=${p.i}`;
+
     if (p.type === 'video') {
       const video = document.createElement('video');
-      video.src = `image.php?g=${encodeURIComponent(guest)}&i=${p.i}`;
-      video.preload = 'metadata';
+      video.dataset.src = src;
+      video.preload = 'none';
       video.muted = true;
       video.playsInline = true;
       btn.appendChild(video);
+      lazyObserver.observe(video);
       const badge = document.createElement('span');
       badge.className = 'video-badge';
       badge.textContent = 'Video';
@@ -85,10 +132,10 @@ function renderGrid() {
       btn.appendChild(play);
     } else {
       const img = document.createElement('img');
-      img.loading = 'lazy';
-      img.src = `image.php?g=${encodeURIComponent(guest)}&i=${p.i}`;
+      img.dataset.src = src;
       img.alt = '';
       btn.appendChild(img);
+      lazyObserver.observe(img);
     }
     gridEl.appendChild(btn);
   });

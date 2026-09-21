@@ -29,7 +29,14 @@ if (!is_file(DATA_FILE)) {
     fail(500, 'Personendaten nicht gefunden - wurde gallery-data/person-photos.json deployed?');
 }
 $data = json_decode((string)file_get_contents(DATA_FILE), true);
-if (!is_array($data) || !isset($data[$guest])) {
+if (!is_array($data)) {
+    // Eigene Fehlermeldung statt in "Gast nicht gefunden" mitzurutschen -
+    // sonst sieht ein kaputter Dateianfang (z.B. ein von PowerShell
+    // hinzugefuegtes UTF-8-BOM, das json_decode() nicht akzeptiert) genauso
+    // aus wie ein einfacher Tippfehler im Link.
+    fail(500, 'Personendaten konnten nicht gelesen werden (' . json_last_error_msg() . ')');
+}
+if (!isset($data[$guest])) {
     fail(404, 'Kein Gast mit diesem Link gefunden');
 }
 

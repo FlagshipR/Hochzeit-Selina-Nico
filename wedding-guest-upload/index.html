@@ -374,6 +374,22 @@
     margin: 0 0 6px;
   }
   .success-msg p { color: var(--muted); margin: 0; }
+  .success-msg a.gallery-hint {
+    display: inline-block;
+    margin-top: 14px;
+    color: var(--accent-dark);
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 1px solid var(--accent);
+  }
+  .share-intro .gallery-hint {
+    display: inline-block;
+    margin-top: 10px;
+    color: var(--accent-dark);
+    font-size: 0.9rem;
+    text-decoration: none;
+    border-bottom: 1px solid var(--accent);
+  }
 
   /* ---------- Drohnenvideo ---------- */
   .drone-section { text-align: center; padding: 64px 20px 10px; }
@@ -442,6 +458,7 @@
   <section class="share-intro">
     <h2>Teile deine Erinnerungen mit uns</h2>
     <p>Hast du Fotos oder Videos von unserem Hochzeitstag?<br>Wir würden uns riesig freuen, sie zu sehen.</p>
+    <a class="gallery-hint" href="galerie.html">Ihr wollt stattdessen eure eigenen Fotos ansehen? →</a>
   </section>
 
   <div class="upload-card">
@@ -464,6 +481,7 @@
   <div class="success-msg" id="successMsg" hidden>
     <h3>Vielen Dank! ❤️</h3>
     <p>Schön, dass du deine Erinnerungen mit uns teilst.</p>
+    <a class="gallery-hint" href="galerie.html">Und hier geht's zu euren eigenen Fotos →</a>
   </div>
 
   <section class="drone-section">

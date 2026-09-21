@@ -57,9 +57,10 @@ function Get-Slug($name) {
 # Ohne 0/1/i/l/o (zu leicht verwechselbar, v.a. handschriftlich/vorgelesen).
 $codeAlphabet = 'abcdefghjkmnpqrstuvwxyz23456789'
 $codeRng = [System.Random]::new()
+$codeLength = 10
 function New-GuestCode($existingCodes) {
     do {
-        $code = -join (1..6 | ForEach-Object { $codeAlphabet[$codeRng.Next($codeAlphabet.Length)] })
+        $code = -join (1..$codeLength | ForEach-Object { $codeAlphabet[$codeRng.Next($codeAlphabet.Length)] })
     } while ($existingCodes.Contains($code))
     return $code
 }

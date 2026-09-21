@@ -8,6 +8,7 @@ const guest = params.get('g') || '';
 
 const greetingEl = document.getElementById('greeting');
 const subGreetingEl = document.getElementById('subGreeting');
+const thankYouEl = document.getElementById('thankYou');
 const stateMsgEl = document.getElementById('stateMsg');
 const photoCountEl = document.getElementById('photoCount');
 const gridEl = document.getElementById('grid');
@@ -45,6 +46,11 @@ async function load() {
 
   photos = data.photos || [];
   greetingEl.textContent = `Für ${data.name}`;
+
+  thankYouEl.innerHTML = '<p>Ihr habt uns an diesem Tag alles gegeben &ndash; danke von Herzen. ♥</p>'
+    + '<p>Als kleines Dankeschön möchten wir euch etwas zurückgeben: hier sind eure Fotos. '
+    + 'Die Galerie füllt sich nach und nach weiter – mit euren eigenen Uploads, und bald auch mit den Bildern unserer Fotografin.</p>';
+  thankYouEl.hidden = false;
 
   if (photos.length === 0) {
     subGreetingEl.textContent = 'Bisher sind noch keine Fotos von dir dabei.';

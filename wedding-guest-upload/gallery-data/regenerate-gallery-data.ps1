@@ -1,6 +1,6 @@
 ﻿# regenerate-gallery-data.ps1 — baut person-photos.json UND codes.json (die
 # Dateien, die photos.php/image.php tatsaechlich lesen) aus den Listen unter
-# lists/*.txt.
+# lists/*.txt UND den Gruppen unter groups/*.txt.
 #
 # Die Listen sind die Quelle der Wahrheit und zum Handbearbeiten gedacht:
 # eine Zeile = ein voller NAS-Pfad. Zeile loeschen = Foto raus, Zeile
@@ -10,10 +10,19 @@
 # (klein geschrieben, Leerzeichen/Umlaute zu Bindestrichen/ae-oe-ue).
 # Abweichenden Anzeigenamen erzwingen: Zeile "# Name: <Name>".
 #
+# groups/<Gruppenname>.txt funktioniert genauso, nur dass jede Zeile ein
+# PERSONENNAME ist (muss zu einer Datei in lists/ passen), keine Pfadzeile.
+# Die Gruppe zeigt die VEREINIGUNGSMENGE der Fotos aller aufgelisteten
+# Personen (dedupliziert). Ein Name, der zu keiner Datei in lists/ passt,
+# wird stillschweigend uebersprungen (traegt einfach noch nichts zur
+# Vereinigungsmenge bei) - kein Fehler, praktisch fuer Leute, die schon in
+# einer Gruppe stehen sollen, aber noch keine zugeordneten Fotos haben.
+#
 # Zugriff fuer Gaeste laeuft NICHT ueber den Slug/Namen, sondern ueber einen
 # kurzen zufaelligen Code (galerie.html fragt danach) - ein Name waere leicht
-# zu erraten, ein Zufallscode nicht. Der Code wird beim ersten Lauf pro
-# Person erzeugt und als "# Code: <code>" in die jeweilige lists/*.txt
+# zu erraten, ein Zufallscode nicht. Sowohl Personen als auch Gruppen
+# bekommen je einen eigenen Code. Der Code wird beim ersten Lauf erzeugt und
+# als "# Code: <code>" in die jeweilige lists/*.txt bzw. groups/*.txt
 # zurueckgeschrieben, damit er bei jedem weiteren Lauf STABIL bleibt (ein
 # einmal verteilter Code darf sich nie mehr aendern). Manuell ueberschreibbar,
 # genau wie "# Name:" - z.B. fuer einen persoenlichen Code statt Zufallsstring.
@@ -29,6 +38,7 @@ $ErrorActionPreference = 'Stop'
 
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $listsDir = Join-Path $here 'lists'
+$groupsDir = Join-Path $here 'groups'
 $outFile = Join-Path $here 'person-photos.json'
 $codesFile = Join-Path $here 'codes.json'
 
@@ -52,6 +62,20 @@ function New-GuestCode($existingCodes) {
         $code = -join (1..6 | ForEach-Object { $codeAlphabet[$codeRng.Next($codeAlphabet.Length)] })
     } while ($existingCodes.Contains($code))
     return $code
+}
+
+# Gemeinsame Code-Logik fuer Personen- UND Gruppen-Dateien: vorhandenen
+# Code aus den geparsten Zeilen wiederverwenden, sonst neu erzeugen. Gibt
+# zurueck, ob ein neuer Code erzeugt wurde (dann muss die Quelldatei
+# aktualisiert werden, sonst nicht).
+function Resolve-GuestCode([string]$existingCode, [System.Collections.Generic.HashSet[string]]$usedCodes) {
+    if ($existingCode) {
+        $usedCodes.Add($existingCode) | Out-Null
+        return [PSCustomObject]@{ Code = $existingCode; IsNew = $false }
+    }
+    $code = New-GuestCode $usedCodes
+    $usedCodes.Add($code) | Out-Null
+    return [PSCustomObject]@{ Code = $code; IsNew = $true }
 }
 
 $out = [ordered]@{}
@@ -80,12 +104,9 @@ foreach ($file in $listFiles) {
         $otherLines += $line
     }
 
-    $codeIsNew = $false
-    if (-not $code) {
-        $code = New-GuestCode $usedCodes
-        $codeIsNew = $true
-    }
-    $usedCodes.Add($code) | Out-Null
+    $resolved = Resolve-GuestCode $code $usedCodes
+    $code = $resolved.Code
+    $codeIsNew = $resolved.IsNew
     $codesOut[$code] = $slug
 
     if ($codeIsNew) {
@@ -114,6 +135,55 @@ foreach ($file in $listFiles) {
     $summary += [PSCustomObject]@{ Name = $displayName; Code = $code; Fotos = $photos.Count; Neu = $codeIsNew }
 }
 
+$groupSummary = @()
+if (Test-Path $groupsDir) {
+    $groupFiles = Get-ChildItem -Path $groupsDir -Filter '*.txt' | Sort-Object Name
+    foreach ($file in $groupFiles) {
+        $groupDisplayName = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
+        $groupSlug = Get-Slug $groupDisplayName
+        $rawLines = Get-Content -Path $file.FullName -Encoding UTF8 | Where-Object { $_.Trim() -ne '' }
+
+        $code = $null
+        $memberNames = @()
+        foreach ($line in $rawLines) {
+            if ($line.StartsWith('# Name:')) { $groupDisplayName = $line.Substring(7).Trim(); continue }
+            if ($line.StartsWith('# Code:')) { $code = $line.Substring(7).Trim().ToLower(); continue }
+            if ($line.StartsWith('#')) { continue }
+            $memberNames += $line.Trim()
+        }
+
+        # Vereinigungsmenge der Fotos aller Mitglieder, dedupliziert nach
+        # Pfad (derselbe Pfad kann bei mehreren Mitgliedern auftauchen, wenn
+        # sie gemeinsam auf einem Foto zu sehen sind).
+        $seenPaths = New-Object System.Collections.Generic.HashSet[string]
+        $unionPhotos = @()
+        $missingMembers = @()
+        foreach ($memberName in $memberNames) {
+            $memberSlug = Get-Slug $memberName
+            if (-not $out.Contains($memberSlug)) { $missingMembers += $memberName; continue }
+            foreach ($p in $out[$memberSlug].photos) {
+                if ($seenPaths.Add($p.path)) { $unionPhotos += $p }
+            }
+        }
+
+        $resolved = Resolve-GuestCode $code $usedCodes
+        $code = $resolved.Code
+        $codeIsNew = $resolved.IsNew
+        $codesOut[$code] = $groupSlug
+
+        if ($codeIsNew) {
+            $newLines = @("# Code: $code") + ($rawLines | Where-Object { -not $_.StartsWith('# Code:') })
+            Set-Content -Path $file.FullName -Value $newLines -Encoding UTF8
+        }
+
+        $out[$groupSlug] = [ordered]@{ name = $groupDisplayName; photos = $unionPhotos }
+        $groupSummary += [PSCustomObject]@{
+            Gruppe = $groupDisplayName; Code = $code; Fotos = $unionPhotos.Count
+            Mitglieder = $memberNames.Count; OhneFotos = ($missingMembers -join ', ')
+        }
+    }
+}
+
 # Set-Content -Encoding UTF8 schreibt in Windows PowerShell 5.1 immer ein BOM
 # (Byte-Order-Mark) an den Dateianfang - PHPs json_decode() akzeptiert das
 # nicht und scheitert mit einem Syntax-Fehler, den man leicht fuer "Gast
@@ -127,5 +197,14 @@ $codesJson = $codesOut | ConvertTo-Json -Depth 2
 Write-Output "person-photos.json geschrieben: $outFile"
 Write-Output "codes.json geschrieben: $codesFile"
 Write-Output ""
-Write-Output "=== Codes zum Verteilen ==="
+Write-Output "=== Personen-Codes (intern/Admin, z.B. fuer die Uebersichtsseite) ==="
 $summary | Sort-Object Name | Format-Table Name, Code, Fotos, Neu -AutoSize | Out-String -Width 200
+
+if ($groupSummary.Count -gt 0) {
+    Write-Output "=== Gruppen-Codes zum Verteilen (ein Code pro Gruppen-Chat) ==="
+    $groupSummary | Format-Table Gruppe, Code, Fotos, Mitglieder, OhneFotos -AutoSize | Out-String -Width 200
+    $leer = $groupSummary | Where-Object { $_.Fotos -eq 0 }
+    if ($leer) {
+        Write-Output "Noch ohne Fotos (Code existiert, Galerie waere aktuell leer): $($leer.Gruppe -join ', ')"
+    }
+}

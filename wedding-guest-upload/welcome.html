@@ -143,7 +143,7 @@
   .corner-olive.bottom-right {
     bottom: 0;
     right: 0;
-    transform: rotate(180deg);
+    transform: scaleX(-1);
   }
 
   #continueBtn {
@@ -166,14 +166,17 @@
   #galleryLink {
     display: inline-block;
     margin-top: 14px;
+    background: var(--accent);
     color: #fff;
-    font-family: 'Playfair Display', serif;
-    font-style: italic;
-    font-size: 0.95rem;
-    text-decoration: underline;
-    text-underline-offset: 3px;
-    text-shadow: 0 1px 8px rgba(0,0,0,0.5);
+    padding: 13px 28px;
+    border-radius: 999px;
+    font-size: 0.98rem;
+    font-weight: 600;
+    text-decoration: none;
+    box-shadow: 0 3px 14px rgba(0,0,0,0.35);
+    transition: transform 0.15s, background 0.15s;
   }
+  #galleryLink:hover { background: var(--accent-dark); transform: scale(1.03); }
 </style>
 </head>
 <body>

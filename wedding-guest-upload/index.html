@@ -374,22 +374,20 @@
     margin: 0 0 6px;
   }
   .success-msg p { color: var(--muted); margin: 0; }
-  .success-msg a.gallery-hint {
+  a.gallery-hint {
     display: inline-block;
-    margin-top: 14px;
-    color: var(--accent-dark);
+    margin-top: 16px;
+    background: var(--accent);
+    color: #fff;
+    padding: 13px 28px;
+    border-radius: 999px;
+    font-size: 0.98rem;
     font-weight: 600;
     text-decoration: none;
-    border-bottom: 1px solid var(--accent);
+    box-shadow: 0 3px 14px rgba(169,118,90,0.35);
+    transition: transform 0.15s, background 0.15s;
   }
-  .share-intro .gallery-hint {
-    display: inline-block;
-    margin-top: 10px;
-    color: var(--accent-dark);
-    font-size: 0.9rem;
-    text-decoration: none;
-    border-bottom: 1px solid var(--accent);
-  }
+  a.gallery-hint:hover { background: var(--accent-dark); transform: scale(1.03); }
 
   /* ---------- Drohnenvideo ---------- */
   .drone-section { text-align: center; padding: 64px 20px 10px; }

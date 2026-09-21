@@ -90,7 +90,7 @@ async function load() {
   photos = data.photos || [];
   greetingEl.textContent = `Für ${data.name}`;
 
-  thankYouEl.innerHTML = '<p>Ihr habt uns an diesem Tag alles gegeben &ndash; danke von Herzen. ♥</p>'
+  thankYouEl.innerHTML = '<p>Ihr und das Wetter habt uns an diesem Tag alles gegeben &ndash; danke von Herzen. ♥</p>'
     + '<p>Als kleines Dankeschön möchten wir euch etwas zurückgeben: hier sind eure Fotos. '
     + 'Die Galerie füllt sich nach und nach weiter – mit euren eigenen Uploads, und bald auch mit den Bildern unserer Fotografin.</p>';
   thankYouEl.hidden = false;
